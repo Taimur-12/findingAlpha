@@ -1,0 +1,33 @@
+# Data (large files, never commit raw market data)
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Secrets and credentials
+.env
+.env.*
+*.key
+secrets/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and reports (generated, not source)
+*.log
+logs/
