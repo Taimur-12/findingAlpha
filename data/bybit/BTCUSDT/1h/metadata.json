@@ -1,0 +1,17 @@
+{
+  "venue": "bybit",
+  "symbol": "BTCUSDT",
+  "timeframe": "1h",
+  "total_candles": 4321,
+  "start": "2025-11-28T00:00:00+00:00",
+  "end": "2026-05-27T00:00:00+00:00",
+  "fetched_at": "2026-05-27T12:41:51.829939+00:00",
+  "quality": {
+    "total_candles": 4321,
+    "gap_count": 0,
+    "total_missing": 0,
+    "gaps": [],
+    "duplicate_times": [],
+    "zero_volume_times": []
+  }
+}
