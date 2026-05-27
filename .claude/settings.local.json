@@ -18,7 +18,12 @@
       "PowerShell(Get-ChildItem \"E:\\\\MyProjects\\\\findingAlpha\\\\data\" -Recurse -File | Where-Object {$_.Extension -eq \".parquet\"} | Select-Object @{Name=\"Path\";Expression={$_.FullName.Replace\\(\"E:\\\\MyProjects\\\\findingAlpha\\\\data\\\\\",\"\"\\)}}, @{Name=\"KB\";Expression={[math]::Round\\($_.Length/1KB,1\\)}})",
       "Bash(\"C:\\\\Users\\\\Shazil Nadeem\\\\anaconda3\\\\envs\\\\finding_alpha\\\\python.exe\" -m pytest tests/test_features.py -v)",
       "PowerShell(& \"C:\\\\Users\\\\Shazil Nadeem\\\\anaconda3\\\\envs\\\\finding_alpha\\\\python.exe\" \"E:\\\\MyProjects\\\\findingAlpha\\\\notebooks\\\\phase5_backtest_runner.py\" 2>&1)",
-      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; & \"C:\\\\Users\\\\Shazil Nadeem\\\\anaconda3\\\\envs\\\\finding_alpha\\\\python.exe\" \"E:\\\\MyProjects\\\\findingAlpha\\\\notebooks\\\\phase5_backtest_runner.py\" 2>&1)"
+      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; & \"C:\\\\Users\\\\Shazil Nadeem\\\\anaconda3\\\\envs\\\\finding_alpha\\\\python.exe\" \"E:\\\\MyProjects\\\\findingAlpha\\\\notebooks\\\\phase5_backtest_runner.py\" 2>&1)",
+      "Bash(cd /d E:\\\\MyProjects\\\\findingAlpha)",
+      "Bash(\"C:\\\\Users\\\\Shazil Nadeem\\\\anaconda3\\\\envs\\\\finding_alpha\\\\python.exe\" notebooks/phase7c_probe.py)",
+      "PowerShell(cd E:\\\\MyProjects\\\\findingAlpha; $env:FINDING_ALPHA_FETCH_DAYS = \"1095\"; & \"C:\\\\Users\\\\Shazil Nadeem\\\\anaconda3\\\\envs\\\\finding_alpha\\\\python.exe\" notebooks/phase7b_fetch_extended_bybit.py 2>&1)",
+      "Bash(grep -rl \"parent\\\\.parent$\\\\|parent\\\\.parent\\\\b\" notebooks/research/ --include=\"*.py\")",
+      "Bash(pip install *)"
     ]
   }
 }

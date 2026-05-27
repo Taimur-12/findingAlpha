@@ -1,0 +1,56 @@
+{
+  "1h": {
+    "trade_count": 213,
+    "win_count": 67,
+    "loss_count": 146,
+    "win_rate": 0.3145539906103286,
+    "expectancy_r": 0.1908920187793427,
+    "median_r": -1.34,
+    "avg_r": 0.1908920187793427,
+    "gross_pnl": "2366.05",
+    "total_fees": "1039.64",
+    "net_pnl": "1005.48",
+    "profit_factor": 1.1909099445957367,
+    "max_drawdown_r": "21.7800",
+    "fee_share_of_gross": 0.4393989983305509,
+    "by_exit_reason": {
+      "stop_loss": 140,
+      "take_profit": 36,
+      "max_hold_time": 37
+    },
+    "by_strategy": {
+      "prev_day_breakout_v1": {
+        "trade_count": 213,
+        "win_rate": 0.3145539906103286,
+        "expectancy_r": 0.1908920187793427
+      }
+    }
+  },
+  "15m": {
+    "trade_count": 165,
+    "win_count": 39,
+    "loss_count": 126,
+    "win_rate": 0.23636363636363636,
+    "expectancy_r": -0.16703030303030303,
+    "median_r": -1.66,
+    "avg_r": -0.16703030303030303,
+    "gross_pnl": "888.21",
+    "total_fees": "1106.09",
+    "net_pnl": "-704.92",
+    "profit_factor": 0.8785314469566752,
+    "max_drawdown_r": "42.0000",
+    "fee_share_of_gross": 1.2453023496695599,
+    "by_exit_reason": {
+      "stop_loss": 126,
+      "take_profit": 34,
+      "max_hold_time": 5
+    },
+    "by_strategy": {
+      "prev_day_breakout_v1": {
+        "trade_count": 165,
+        "win_rate": 0.23636363636363636,
+        "expectancy_r": -0.16703030303030303
+      }
+    }
+  }
+}

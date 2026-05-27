@@ -31,6 +31,8 @@ from finding_alpha.risk.state import OpenPosition, RiskState
 from finding_alpha.simulation.executor import SimConfig, simulate_trade
 from finding_alpha.strategies.liquidity_sweep_v1 import find_signal as sweep_signal
 from finding_alpha.strategies.prev_day_breakdown_v1 import find_signal as breakdown_signal
+from finding_alpha.strategies.prev_day_breakout_v1 import find_signal as breakout_signal
+from finding_alpha.strategies.short_composite_v1 import find_signal as short_composite_signal
 from finding_alpha.strategies.squeeze_v1 import find_signal as squeeze_signal
 from finding_alpha.strategies.trend_pullback_v1 import find_signal as pullback_signal
 
@@ -74,11 +76,31 @@ def _breakdown_adapter(
     return breakdown_signal(snapshot, regime, now)
 
 
+def _breakout_adapter(
+    snapshot: FeatureSnapshot,
+    regime: RegimeState,
+    row: pd.Series,
+    now: datetime,
+) -> Optional[SignalCandidate]:
+    return breakout_signal(snapshot, regime, now)
+
+
+def _short_composite_adapter(
+    snapshot: FeatureSnapshot,
+    regime: RegimeState,
+    row: pd.Series,
+    now: datetime,
+) -> Optional[SignalCandidate]:
+    return short_composite_signal(snapshot, regime, row, now)
+
+
 STRATEGIES: dict[str, StrategyFn] = {
     "liquidity_sweep_v1": _sweep_adapter,
     "squeeze_v1": _squeeze_adapter,
     "trend_pullback_v1": _pullback_adapter,
     "prev_day_breakdown_v1": _breakdown_adapter,
+    "prev_day_breakout_v1": _breakout_adapter,
+    "short_composite_v1": _short_composite_adapter,
 }
 
 
