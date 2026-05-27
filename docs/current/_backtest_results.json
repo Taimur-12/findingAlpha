@@ -1,0 +1,70 @@
+{
+  "liquidity_sweep_v1": {
+    "signals_fired": 21,
+    "outcomes_simulated": 21,
+    "entry_not_filled": 0,
+    "trade_count": 21,
+    "win_count": 10,
+    "loss_count": 11,
+    "win_rate": 0.47619047619047616,
+    "expectancy_r": 0.030476190476190473,
+    "median_r": -1.18,
+    "avg_r": 0.030476190476190473,
+    "gross_pnl": "333.27",
+    "total_fees": "266.11",
+    "net_pnl": "62.12",
+    "profit_factor": 1.0423000660938533,
+    "max_drawdown_r": "6.3400",
+    "fee_share_of_gross": 0.7984817115251899,
+    "by_exit_reason": {
+      "stop_loss": 11,
+      "max_hold_time": 3,
+      "take_profit": 7
+    }
+  },
+  "squeeze_v1": {
+    "signals_fired": 7,
+    "outcomes_simulated": 7,
+    "entry_not_filled": 0,
+    "trade_count": 7,
+    "win_count": 2,
+    "loss_count": 5,
+    "win_rate": 0.2857142857142857,
+    "expectancy_r": -0.3742857142857143,
+    "median_r": -1.23,
+    "avg_r": -0.3742857142857143,
+    "gross_pnl": "-196.46",
+    "total_fees": "80.17",
+    "net_pnl": "-262.21",
+    "profit_factor": 0.5931677018633541,
+    "max_drawdown_r": "6.4400",
+    "fee_share_of_gross": null,
+    "by_exit_reason": {
+      "take_profit": 2,
+      "stop_loss": 5
+    }
+  },
+  "trend_pullback_v1": {
+    "signals_fired": 251,
+    "outcomes_simulated": 251,
+    "entry_not_filled": 0,
+    "trade_count": 251,
+    "win_count": 109,
+    "loss_count": 142,
+    "win_rate": 0.4342629482071713,
+    "expectancy_r": -0.09749003984063745,
+    "median_r": -0.18,
+    "avg_r": -0.09749003984063745,
+    "gross_pnl": "-70.90",
+    "total_fees": "2194.76",
+    "net_pnl": "-2435.23",
+    "profit_factor": 0.8128059975520195,
+    "max_drawdown_r": "31.3600",
+    "fee_share_of_gross": null,
+    "by_exit_reason": {
+      "take_profit": 37,
+      "max_hold_time": 123,
+      "stop_loss": 91
+    }
+  }
+}
