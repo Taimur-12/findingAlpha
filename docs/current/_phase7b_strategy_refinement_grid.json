@@ -1,0 +1,1157 @@
+[
+  {
+    "strategy_id": "tp_short_s2_p0.5_b0.75_t1.5_adx20.0",
+    "signals": 3,
+    "trades": 3,
+    "metrics": {
+      "trade_count": 3,
+      "win_count": 3,
+      "loss_count": 0,
+      "win_rate": 1.0,
+      "expectancy_r": 1.3233333333333333,
+      "median_r": 1.49,
+      "avg_r": 1.3233333333333333,
+      "gross_pnl": "432.35",
+      "total_fees": "36.89",
+      "net_pnl": "397.31",
+      "profit_factor": null,
+      "max_drawdown_r": "0.0000",
+      "fee_share_of_gross": 0.08532438996183647,
+      "by_exit_reason": {
+        "take_profit": 2,
+        "max_hold_time": 1
+      },
+      "by_strategy": {
+        "tp_short_s2_p0.5_b0.75_t1.5_adx20.0": {
+          "trade_count": 3,
+          "win_rate": 1.0,
+          "expectancy_r": 1.3233333333333333
+        }
+      }
+    },
+    "by_regime": {
+      "trend_down": {
+        "trade_count": 3,
+        "win_rate": 1.0,
+        "expectancy_r": 1.3233333333333333,
+        "profit_factor": null,
+        "net_pnl": "397.31"
+      }
+    },
+    "by_session": {
+      "london_ny_overlap": {
+        "trade_count": 1,
+        "win_rate": 1.0,
+        "expectancy_r": 1.66,
+        "profit_factor": null,
+        "net_pnl": "165.84"
+      },
+      "london": {
+        "trade_count": 2,
+        "win_rate": 1.0,
+        "expectancy_r": 1.155,
+        "profit_factor": null,
+        "net_pnl": "231.47"
+      }
+    }
+  },
+  {
+    "strategy_id": "tp_short_s1_p0.75_b0.75_t2.0_adx20.0",
+    "signals": 11,
+    "trades": 11,
+    "metrics": {
+      "trade_count": 11,
+      "win_count": 7,
+      "loss_count": 4,
+      "win_rate": 0.6363636363636364,
+      "expectancy_r": 0.35545454545454547,
+      "median_r": 0.63,
+      "avg_r": 0.35545454545454547,
+      "gross_pnl": "461.93",
+      "total_fees": "85.23",
+      "net_pnl": "387.95",
+      "profit_factor": 1.7947154471544715,
+      "max_drawdown_r": "1.8000",
+      "fee_share_of_gross": 0.18450847531011194,
+      "by_exit_reason": {
+        "stop_loss": 4,
+        "take_profit": 4,
+        "max_hold_time": 3
+      },
+      "by_strategy": {
+        "tp_short_s1_p0.75_b0.75_t2.0_adx20.0": {
+          "trade_count": 11,
+          "win_rate": 0.6363636363636364,
+          "expectancy_r": 0.35545454545454547
+        }
+      }
+    },
+    "by_regime": {
+      "trend_down": {
+        "trade_count": 11,
+        "win_rate": 0.6363636363636364,
+        "expectancy_r": 0.35545454545454547,
+        "profit_factor": 1.7947154471544715,
+        "net_pnl": "387.95"
+      }
+    },
+    "by_session": {
+      "london_ny_overlap": {
+        "trade_count": 11,
+        "win_rate": 0.6363636363636364,
+        "expectancy_r": 0.35545454545454547,
+        "profit_factor": 1.7947154471544715,
+        "net_pnl": "387.95"
+      }
+    }
+  },
+  {
+    "strategy_id": "tp_short_s2_p0.75_b1.0_t2.0_adx25.0",
+    "signals": 3,
+    "trades": 3,
+    "metrics": {
+      "trade_count": 3,
+      "win_count": 2,
+      "loss_count": 1,
+      "win_rate": 0.6666666666666666,
+      "expectancy_r": 0.32333333333333336,
+      "median_r": 0.65,
+      "avg_r": 0.32333333333333336,
+      "gross_pnl": "127.40",
+      "total_fees": "37.74",
+      "net_pnl": "97.01",
+      "profit_factor": 1.6736111111111114,
+      "max_drawdown_r": "1.4400",
+      "fee_share_of_gross": 0.29623233908948193,
+      "by_exit_reason": {
+        "take_profit": 1,
+        "max_hold_time": 1,
+        "stop_loss": 1
+      },
+      "by_strategy": {
+        "tp_short_s2_p0.75_b1.0_t2.0_adx25.0": {
+          "trade_count": 3,
+          "win_rate": 0.6666666666666666,
+          "expectancy_r": 0.32333333333333336
+        }
+      }
+    },
+    "by_regime": {
+      "trend_down": {
+        "trade_count": 3,
+        "win_rate": 0.6666666666666666,
+        "expectancy_r": 0.32333333333333336,
+        "profit_factor": 1.6736111111111114,
+        "net_pnl": "97.01"
+      }
+    },
+    "by_session": {
+      "london_ny_overlap": {
+        "trade_count": 1,
+        "win_rate": 1.0,
+        "expectancy_r": 1.76,
+        "profit_factor": null,
+        "net_pnl": "176.15"
+      },
+      "london": {
+        "trade_count": 2,
+        "win_rate": 0.5,
+        "expectancy_r": -0.39499999999999996,
+        "profit_factor": 0.4513888888888889,
+        "net_pnl": "-79.14"
+      }
+    }
+  },
+  {
+    "strategy_id": "ls_r1_s2_v1.5_w0.0_t2.5_b0.25",
+    "signals": 20,
+    "trades": 20,
+    "metrics": {
+      "trade_count": 20,
+      "win_count": 8,
+      "loss_count": 12,
+      "win_rate": 0.4,
+      "expectancy_r": 0.2435,
+      "median_r": -0.10500000000000001,
+      "avg_r": 0.2435,
+      "gross_pnl": "868.81",
+      "total_fees": "340.84",
+      "net_pnl": "487.08",
+      "profit_factor": 1.402479338842975,
+      "max_drawdown_r": "4.5400",
+      "fee_share_of_gross": 0.3923067183849173,
+      "by_exit_reason": {
+        "stop_loss": 8,
+        "max_hold_time": 8,
+        "take_profit": 4
+      },
+      "by_strategy": {
+        "ls_r1_s2_v1.5_w0.0_t2.5_b0.25": {
+          "trade_count": 20,
+          "win_rate": 0.4,
+          "expectancy_r": 0.2435
+        }
+      }
+    },
+    "by_regime": {
+      "breakout_pending": {
+        "trade_count": 20,
+        "win_rate": 0.4,
+        "expectancy_r": 0.2435,
+        "profit_factor": 1.402479338842975,
+        "net_pnl": "487.08"
+      }
+    },
+    "by_session": {
+      "london": {
+        "trade_count": 7,
+        "win_rate": 0.2857142857142857,
+        "expectancy_r": -0.24428571428571427,
+        "profit_factor": 0.7682926829268293,
+        "net_pnl": "-169.49"
+      },
+      "london_ny_overlap": {
+        "trade_count": 13,
+        "win_rate": 0.46153846153846156,
+        "expectancy_r": 0.5061538461538462,
+        "profit_factor": 2.3940677966101696,
+        "net_pnl": "656.57"
+      }
+    }
+  },
+  {
+    "strategy_id": "ls_r1_s5_v1.5_w0.0_t2.5_b0.25",
+    "signals": 24,
+    "trades": 24,
+    "metrics": {
+      "trade_count": 24,
+      "win_count": 9,
+      "loss_count": 15,
+      "win_rate": 0.375,
+      "expectancy_r": 0.11666666666666668,
+      "median_r": -0.10500000000000001,
+      "avg_r": 0.11666666666666668,
+      "gross_pnl": "727.45",
+      "total_fees": "409.24",
+      "net_pnl": "280.96",
+      "profit_factor": 1.1870407481629925,
+      "max_drawdown_r": "6.9300",
+      "fee_share_of_gross": 0.5625678740806928,
+      "by_exit_reason": {
+        "stop_loss": 10,
+        "max_hold_time": 10,
+        "take_profit": 4
+      },
+      "by_strategy": {
+        "ls_r1_s5_v1.5_w0.0_t2.5_b0.25": {
+          "trade_count": 24,
+          "win_rate": 0.375,
+          "expectancy_r": 0.11666666666666668
+        }
+      }
+    },
+    "by_regime": {
+      "breakout_pending": {
+        "trade_count": 24,
+        "win_rate": 0.375,
+        "expectancy_r": 0.11666666666666668,
+        "profit_factor": 1.1870407481629925,
+        "net_pnl": "280.96"
+      }
+    },
+    "by_session": {
+      "london": {
+        "trade_count": 7,
+        "win_rate": 0.2857142857142857,
+        "expectancy_r": -0.24428571428571427,
+        "profit_factor": 0.7682926829268293,
+        "net_pnl": "-169.49"
+      },
+      "london_ny_overlap": {
+        "trade_count": 13,
+        "win_rate": 0.46153846153846156,
+        "expectancy_r": 0.5061538461538462,
+        "profit_factor": 2.3940677966101696,
+        "net_pnl": "656.57"
+      },
+      "asia": {
+        "trade_count": 2,
+        "win_rate": 0.5,
+        "expectancy_r": -0.33499999999999996,
+        "profit_factor": 0.54421768707483,
+        "net_pnl": "-66.93"
+      },
+      "wind_down": {
+        "trade_count": 1,
+        "win_rate": 0.0,
+        "expectancy_r": -1.4,
+        "profit_factor": 0.0,
+        "net_pnl": "-139.58"
+      },
+      "ny": {
+        "trade_count": 1,
+        "win_rate": 0.0,
+        "expectancy_r": 0.0,
+        "profit_factor": null,
+        "net_pnl": "0.39"
+      }
+    }
+  },
+  {
+    "strategy_id": "tp_short_s2_p0.75_b0.75_t2.0_adx20.0",
+    "signals": 23,
+    "trades": 23,
+    "metrics": {
+      "trade_count": 23,
+      "win_count": 12,
+      "loss_count": 11,
+      "win_rate": 0.5217391304347826,
+      "expectancy_r": 0.029130434782608683,
+      "median_r": 0.12,
+      "avg_r": 0.029130434782608683,
+      "gross_pnl": "296.05",
+      "total_fees": "204.99",
+      "net_pnl": "65.83",
+      "profit_factor": 1.0509505703422053,
+      "max_drawdown_r": "4.7900",
+      "fee_share_of_gross": 0.6924168214828577,
+      "by_exit_reason": {
+        "stop_loss": 10,
+        "take_profit": 6,
+        "max_hold_time": 7
+      },
+      "by_strategy": {
+        "tp_short_s2_p0.75_b0.75_t2.0_adx20.0": {
+          "trade_count": 23,
+          "win_rate": 0.5217391304347826,
+          "expectancy_r": 0.029130434782608683
+        }
+      }
+    },
+    "by_regime": {
+      "trend_down": {
+        "trade_count": 23,
+        "win_rate": 0.5217391304347826,
+        "expectancy_r": 0.029130434782608683,
+        "profit_factor": 1.0509505703422053,
+        "net_pnl": "65.83"
+      }
+    },
+    "by_session": {
+      "london": {
+        "trade_count": 13,
+        "win_rate": 0.38461538461538464,
+        "expectancy_r": -0.35923076923076924,
+        "profit_factor": 0.5165631469979296,
+        "net_pnl": "-465.51"
+      },
+      "london_ny_overlap": {
+        "trade_count": 10,
+        "win_rate": 0.7,
+        "expectancy_r": 0.534,
+        "profit_factor": 2.530085959885387,
+        "net_pnl": "531.34"
+      }
+    }
+  },
+  {
+    "strategy_id": "sq_s5_bw20.0_v0.0_t2.5_h360",
+    "signals": 95,
+    "trades": 95,
+    "metrics": {
+      "trade_count": 95,
+      "win_count": 36,
+      "loss_count": 59,
+      "win_rate": 0.37894736842105264,
+      "expectancy_r": -0.15642105263157896,
+      "median_r": -0.51,
+      "avg_r": -0.15642105263157896,
+      "gross_pnl": "18.84",
+      "total_fees": "1251.24",
+      "net_pnl": "-1482.90",
+      "profit_factor": 0.7646499841621793,
+      "max_drawdown_r": "30.7500",
+      "fee_share_of_gross": 66.4140127388535,
+      "by_exit_reason": {
+        "take_profit": 24,
+        "max_hold_time": 31,
+        "stop_loss": 40
+      },
+      "by_strategy": {
+        "sq_s5_bw20.0_v0.0_t2.5_h360": {
+          "trade_count": 95,
+          "win_rate": 0.37894736842105264,
+          "expectancy_r": -0.15642105263157896
+        }
+      }
+    },
+    "by_regime": {
+      "trend_up": {
+        "trade_count": 19,
+        "win_rate": 0.5263157894736842,
+        "expectancy_r": 0.1568421052631579,
+        "profit_factor": 1.295049504950495,
+        "net_pnl": "297.97"
+      },
+      "breakout_pending": {
+        "trade_count": 59,
+        "win_rate": 0.3389830508474576,
+        "expectancy_r": -0.2840677966101695,
+        "profit_factor": 0.6118573413617415,
+        "net_pnl": "-1670.87"
+      },
+      "trend_down": {
+        "trade_count": 9,
+        "win_rate": 0.5555555555555556,
+        "expectancy_r": 0.42333333333333334,
+        "profit_factor": 2.097982708933718,
+        "net_pnl": "377.13"
+      },
+      "range": {
+        "trade_count": 8,
+        "win_rate": 0.125,
+        "expectancy_r": -0.61125,
+        "profit_factor": 0.2347417840375587,
+        "net_pnl": "-487.13"
+      }
+    },
+    "by_session": {
+      "ny": {
+        "trade_count": 17,
+        "win_rate": 0.5294117647058824,
+        "expectancy_r": 0.17235294117647054,
+        "profit_factor": 1.3310734463276837,
+        "net_pnl": "291.19"
+      },
+      "asia": {
+        "trade_count": 16,
+        "win_rate": 0.4375,
+        "expectancy_r": 0.06437499999999999,
+        "profit_factor": 1.1223277909738716,
+        "net_pnl": "104.51"
+      },
+      "london_ny_overlap": {
+        "trade_count": 31,
+        "win_rate": 0.3225806451612903,
+        "expectancy_r": -0.2296774193548387,
+        "profit_factor": 0.6511513963743264,
+        "net_pnl": "-711.32"
+      },
+      "london": {
+        "trade_count": 24,
+        "win_rate": 0.375,
+        "expectancy_r": -0.16291666666666668,
+        "profit_factor": 0.7765714285714286,
+        "net_pnl": "-390.96"
+      },
+      "wind_down": {
+        "trade_count": 7,
+        "win_rate": 0.14285714285714285,
+        "expectancy_r": -1.1128571428571428,
+        "profit_factor": 0.021356783919597992,
+        "net_pnl": "-776.32"
+      }
+    }
+  },
+  {
+    "strategy_id": "sq_s2_bw30.0_v0.0_t3.0_h720",
+    "signals": 105,
+    "trades": 105,
+    "metrics": {
+      "trade_count": 105,
+      "win_count": 38,
+      "loss_count": 67,
+      "win_rate": 0.3619047619047619,
+      "expectancy_r": -0.1619047619047619,
+      "median_r": -1.16,
+      "avg_r": -0.1619047619047619,
+      "gross_pnl": "-236.07",
+      "total_fees": "1110.37",
+      "net_pnl": "-1699.16",
+      "profit_factor": 0.7818275154004107,
+      "max_drawdown_r": "27.9300",
+      "fee_share_of_gross": null,
+      "by_exit_reason": {
+        "max_hold_time": 22,
+        "stop_loss": 55,
+        "take_profit": 28
+      },
+      "by_strategy": {
+        "sq_s2_bw30.0_v0.0_t3.0_h720": {
+          "trade_count": 105,
+          "win_rate": 0.3619047619047619,
+          "expectancy_r": -0.1619047619047619
+        }
+      }
+    },
+    "by_regime": {
+      "breakout_pending": {
+        "trade_count": 42,
+        "win_rate": 0.30952380952380953,
+        "expectancy_r": -0.3173809523809524,
+        "profit_factor": 0.6389490790899242,
+        "net_pnl": "-1330.58"
+      },
+      "range": {
+        "trade_count": 37,
+        "win_rate": 0.35135135135135137,
+        "expectancy_r": -0.2097297297297297,
+        "profit_factor": 0.6893514811849479,
+        "net_pnl": "-774.85"
+      },
+      "trend_down": {
+        "trade_count": 10,
+        "win_rate": 0.5,
+        "expectancy_r": 0.231,
+        "profit_factor": 1.341715976331361,
+        "net_pnl": "227.94"
+      },
+      "trend_up": {
+        "trade_count": 16,
+        "win_rate": 0.4375,
+        "expectancy_r": 0.11124999999999997,
+        "profit_factor": 1.1922246220302375,
+        "net_pnl": "178.33"
+      }
+    },
+    "by_session": {
+      "london": {
+        "trade_count": 43,
+        "win_rate": 0.4418604651162791,
+        "expectancy_r": -0.004418604651162794,
+        "profit_factor": 0.9937169312169313,
+        "net_pnl": "-22.65"
+      },
+      "london_ny_overlap": {
+        "trade_count": 62,
+        "win_rate": 0.3064516129032258,
+        "expectancy_r": -0.2711290322580645,
+        "profit_factor": 0.6474412751677853,
+        "net_pnl": "-1676.51"
+      }
+    }
+  },
+  {
+    "strategy_id": "ls_r1_s1_v1.5_w0.0_t3.0_b0.25",
+    "signals": 19,
+    "trades": 19,
+    "metrics": {
+      "trade_count": 19,
+      "win_count": 5,
+      "loss_count": 14,
+      "win_rate": 0.2631578947368421,
+      "expectancy_r": -0.1626315789473684,
+      "median_r": -0.11,
+      "avg_r": -0.1626315789473684,
+      "gross_pnl": "8.17",
+      "total_fees": "282.57",
+      "net_pnl": "-309.14",
+      "profit_factor": 0.7248441674087267,
+      "max_drawdown_r": "10.6000",
+      "fee_share_of_gross": 34.58629130966952,
+      "by_exit_reason": {
+        "stop_loss": 8,
+        "max_hold_time": 10,
+        "take_profit": 1
+      },
+      "by_strategy": {
+        "ls_r1_s1_v1.5_w0.0_t3.0_b0.25": {
+          "trade_count": 19,
+          "win_rate": 0.2631578947368421,
+          "expectancy_r": -0.1626315789473684
+        }
+      }
+    },
+    "by_regime": {
+      "breakout_pending": {
+        "trade_count": 19,
+        "win_rate": 0.2631578947368421,
+        "expectancy_r": -0.1626315789473684,
+        "profit_factor": 0.7248441674087267,
+        "net_pnl": "-309.14"
+      }
+    },
+    "by_session": {
+      "london_ny_overlap": {
+        "trade_count": 19,
+        "win_rate": 0.2631578947368421,
+        "expectancy_r": -0.1626315789473684,
+        "profit_factor": 0.7248441674087267,
+        "net_pnl": "-309.14"
+      }
+    }
+  },
+  {
+    "strategy_id": "ls_r2_s2_v2.0_w0.3_t3.0_b0.25",
+    "signals": 50,
+    "trades": 50,
+    "metrics": {
+      "trade_count": 50,
+      "win_count": 20,
+      "loss_count": 30,
+      "win_rate": 0.4,
+      "expectancy_r": -0.1766,
+      "median_r": -0.125,
+      "avg_r": -0.1766,
+      "gross_pnl": "-146.51",
+      "total_fees": "596.14",
+      "net_pnl": "-881.96",
+      "profit_factor": 0.6624617737003058,
+      "max_drawdown_r": "9.5700",
+      "fee_share_of_gross": null,
+      "by_exit_reason": {
+        "max_hold_time": 30,
+        "take_profit": 3,
+        "stop_loss": 17
+      },
+      "by_strategy": {
+        "ls_r2_s2_v2.0_w0.3_t3.0_b0.25": {
+          "trade_count": 50,
+          "win_rate": 0.4,
+          "expectancy_r": -0.1766
+        }
+      }
+    },
+    "by_regime": {
+      "range": {
+        "trade_count": 36,
+        "win_rate": 0.4444444444444444,
+        "expectancy_r": -0.12277777777777778,
+        "profit_factor": 0.7688284518828451,
+        "net_pnl": "-442.43"
+      },
+      "breakout_pending": {
+        "trade_count": 14,
+        "win_rate": 0.2857142857142857,
+        "expectancy_r": -0.315,
+        "profit_factor": 0.3735795454545454,
+        "net_pnl": "-439.53"
+      }
+    },
+    "by_session": {
+      "london_ny_overlap": {
+        "trade_count": 45,
+        "win_rate": 0.37777777777777777,
+        "expectancy_r": -0.26622222222222225,
+        "profit_factor": 0.5137987012987013,
+        "net_pnl": "-1196.59"
+      },
+      "london": {
+        "trade_count": 5,
+        "win_rate": 0.6,
+        "expectancy_r": 0.63,
+        "profit_factor": 3.0723684210526314,
+        "net_pnl": "314.63"
+      }
+    }
+  },
+  {
+    "strategy_id": "sq_s2_bw20.0_v0.0_t2.5_h360",
+    "signals": 57,
+    "trades": 57,
+    "metrics": {
+      "trade_count": 57,
+      "win_count": 19,
+      "loss_count": 38,
+      "win_rate": 0.3333333333333333,
+      "expectancy_r": -0.22421052631578947,
+      "median_r": -0.62,
+      "avg_r": -0.22421052631578947,
+      "gross_pnl": "-380.16",
+      "total_fees": "751.02",
+      "net_pnl": "-1277.40",
+      "profit_factor": 0.6777609682299547,
+      "max_drawdown_r": "19.8300",
+      "fee_share_of_gross": null,
+      "by_exit_reason": {
+        "max_hold_time": 17,
+        "take_profit": 14,
+        "stop_loss": 26
+      },
+      "by_strategy": {
+        "sq_s2_bw20.0_v0.0_t2.5_h360": {
+          "trade_count": 57,
+          "win_rate": 0.3333333333333333,
+          "expectancy_r": -0.22421052631578947
+        }
+      }
+    },
+    "by_regime": {
+      "breakout_pending": {
+        "trade_count": 35,
+        "win_rate": 0.2571428571428571,
+        "expectancy_r": -0.3982857142857143,
+        "profit_factor": 0.48844036697247706,
+        "net_pnl": "-1390.67"
+      },
+      "trend_down": {
+        "trade_count": 7,
+        "win_rate": 0.5714285714285714,
+        "expectancy_r": 0.5685714285714286,
+        "profit_factor": 2.8511627906976744,
+        "net_pnl": "394.15"
+      },
+      "trend_up": {
+        "trade_count": 9,
+        "win_rate": 0.5555555555555556,
+        "expectancy_r": 0.08333333333333331,
+        "profit_factor": 1.1445086705202312,
+        "net_pnl": "75.40"
+      },
+      "range": {
+        "trade_count": 6,
+        "win_rate": 0.16666666666666666,
+        "expectancy_r": -0.5950000000000001,
+        "profit_factor": 0.29585798816568043,
+        "net_pnl": "-356.28"
+      }
+    },
+    "by_session": {
+      "london": {
+        "trade_count": 26,
+        "win_rate": 0.34615384615384615,
+        "expectancy_r": -0.21769230769230768,
+        "profit_factor": 0.7059740259740259,
+        "net_pnl": "-566.08"
+      },
+      "london_ny_overlap": {
+        "trade_count": 31,
+        "win_rate": 0.3225806451612903,
+        "expectancy_r": -0.2296774193548387,
+        "profit_factor": 0.6511513963743264,
+        "net_pnl": "-711.32"
+      }
+    }
+  },
+  {
+    "strategy_id": "ls_r1_s5_v1.5_w0.0_t3.0_b0.25",
+    "signals": 33,
+    "trades": 33,
+    "metrics": {
+      "trade_count": 33,
+      "win_count": 8,
+      "loss_count": 25,
+      "win_rate": 0.24242424242424243,
+      "expectancy_r": -0.2321212121212121,
+      "median_r": -0.37,
+      "avg_r": -0.2321212121212121,
+      "gross_pnl": "-189.02",
+      "total_fees": "521.08",
+      "net_pnl": "-762.85",
+      "profit_factor": 0.6665215498476273,
+      "max_drawdown_r": "18.5300",
+      "fee_share_of_gross": null,
+      "by_exit_reason": {
+        "stop_loss": 16,
+        "max_hold_time": 15,
+        "take_profit": 2
+      },
+      "by_strategy": {
+        "ls_r1_s5_v1.5_w0.0_t3.0_b0.25": {
+          "trade_count": 33,
+          "win_rate": 0.24242424242424243,
+          "expectancy_r": -0.2321212121212121
+        }
+      }
+    },
+    "by_regime": {
+      "breakout_pending": {
+        "trade_count": 33,
+        "win_rate": 0.24242424242424243,
+        "expectancy_r": -0.2321212121212121,
+        "profit_factor": 0.6665215498476273,
+        "net_pnl": "-762.85"
+      }
+    },
+    "by_session": {
+      "asia": {
+        "trade_count": 4,
+        "win_rate": 0.25,
+        "expectancy_r": -0.5375,
+        "profit_factor": 0.2711864406779661,
+        "net_pnl": "-214.57"
+      },
+      "london": {
+        "trade_count": 8,
+        "win_rate": 0.25,
+        "expectancy_r": -0.12624999999999997,
+        "profit_factor": 0.8631436314363143,
+        "net_pnl": "-99.08"
+      },
+      "london_ny_overlap": {
+        "trade_count": 18,
+        "win_rate": 0.2777777777777778,
+        "expectancy_r": -0.09722222222222221,
+        "profit_factor": 0.8230535894843276,
+        "net_pnl": "-174.79"
+      },
+      "wind_down": {
+        "trade_count": 2,
+        "win_rate": 0.0,
+        "expectancy_r": -1.375,
+        "profit_factor": 0.0,
+        "net_pnl": "-274.80"
+      },
+      "ny": {
+        "trade_count": 1,
+        "win_rate": 0.0,
+        "expectancy_r": 0.0,
+        "profit_factor": null,
+        "net_pnl": "0.39"
+      }
+    }
+  },
+  {
+    "strategy_id": "sq_s5_bw30.0_v0.0_t2.5_h720",
+    "signals": 125,
+    "trades": 125,
+    "metrics": {
+      "trade_count": 125,
+      "win_count": 44,
+      "loss_count": 81,
+      "win_rate": 0.352,
+      "expectancy_r": -0.24792000000000003,
+      "median_r": -1.2,
+      "avg_r": -0.24792000000000003,
+      "gross_pnl": "-1282.18",
+      "total_fees": "1436.87",
+      "net_pnl": "-3090.45",
+      "profit_factor": 0.6946798029556651,
+      "max_drawdown_r": "44.4700",
+      "fee_share_of_gross": null,
+      "by_exit_reason": {
+        "take_profit": 37,
+        "max_hold_time": 16,
+        "stop_loss": 72
+      },
+      "by_strategy": {
+        "sq_s5_bw30.0_v0.0_t2.5_h720": {
+          "trade_count": 125,
+          "win_rate": 0.352,
+          "expectancy_r": -0.24792000000000003
+        }
+      }
+    },
+    "by_regime": {
+      "trend_up": {
+        "trade_count": 24,
+        "win_rate": 0.5,
+        "expectancy_r": 0.235,
+        "profit_factor": 1.379542395693136,
+        "net_pnl": "561.99"
+      },
+      "breakout_pending": {
+        "trade_count": 59,
+        "win_rate": 0.3220338983050847,
+        "expectancy_r": -0.35915254237288136,
+        "profit_factor": 0.59737792133764,
+        "net_pnl": "-2113.45"
+      },
+      "range": {
+        "trade_count": 29,
+        "win_rate": 0.27586206896551724,
+        "expectancy_r": -0.4458620689655172,
+        "profit_factor": 0.4483788395904437,
+        "net_pnl": "-1285.46"
+      },
+      "trend_down": {
+        "trade_count": 13,
+        "win_rate": 0.38461538461538464,
+        "expectancy_r": -0.19307692307692306,
+        "profit_factor": 0.7625354777672658,
+        "net_pnl": "-253.53"
+      }
+    },
+    "by_session": {
+      "ny": {
+        "trade_count": 25,
+        "win_rate": 0.36,
+        "expectancy_r": -0.266,
+        "profit_factor": 0.6730580137659784,
+        "net_pnl": "-662.28"
+      },
+      "asia": {
+        "trade_count": 22,
+        "win_rate": 0.5,
+        "expectancy_r": 0.08681818181818181,
+        "profit_factor": 1.1275033377837116,
+        "net_pnl": "190.31"
+      },
+      "wind_down": {
+        "trade_count": 9,
+        "win_rate": 0.1111111111111111,
+        "expectancy_r": -1.0,
+        "profit_factor": 0.05956112852664576,
+        "net_pnl": "-896.50"
+      },
+      "london_ny_overlap": {
+        "trade_count": 41,
+        "win_rate": 0.3170731707317073,
+        "expectancy_r": -0.25853658536585367,
+        "profit_factor": 0.6794677955851224,
+        "net_pnl": "-1057.12"
+      },
+      "london": {
+        "trade_count": 28,
+        "win_rate": 0.35714285714285715,
+        "expectancy_r": -0.23750000000000002,
+        "profit_factor": 0.7175021240441801,
+        "net_pnl": "-664.86"
+      }
+    }
+  },
+  {
+    "strategy_id": "sq_s1_bw30.0_v0.0_t3.0_h720",
+    "signals": 67,
+    "trades": 67,
+    "metrics": {
+      "trade_count": 67,
+      "win_count": 20,
+      "loss_count": 47,
+      "win_rate": 0.29850746268656714,
+      "expectancy_r": -0.27149253731343287,
+      "median_r": -1.14,
+      "avg_r": -0.27149253731343287,
+      "gross_pnl": "-955.31",
+      "total_fees": "672.63",
+      "net_pnl": "-1814.17",
+      "profit_factor": 0.6426326129666012,
+      "max_drawdown_r": "27.9600",
+      "fee_share_of_gross": null,
+      "by_exit_reason": {
+        "stop_loss": 35,
+        "take_profit": 14,
+        "max_hold_time": 18
+      },
+      "by_strategy": {
+        "sq_s1_bw30.0_v0.0_t3.0_h720": {
+          "trade_count": 67,
+          "win_rate": 0.29850746268656714,
+          "expectancy_r": -0.27149253731343287
+        }
+      }
+    },
+    "by_regime": {
+      "range": {
+        "trade_count": 26,
+        "win_rate": 0.23076923076923078,
+        "expectancy_r": -0.4507692307692307,
+        "profit_factor": 0.38445378151260506,
+        "net_pnl": "-1167.61"
+      },
+      "breakout_pending": {
+        "trade_count": 23,
+        "win_rate": 0.2608695652173913,
+        "expectancy_r": -0.32826086956521744,
+        "profit_factor": 0.6387559808612441,
+        "net_pnl": "-751.84"
+      },
+      "trend_down": {
+        "trade_count": 8,
+        "win_rate": 0.375,
+        "expectancy_r": -0.31249999999999994,
+        "profit_factor": 0.6301775147928994,
+        "net_pnl": "-250.84"
+      },
+      "trend_up": {
+        "trade_count": 10,
+        "win_rate": 0.5,
+        "expectancy_r": 0.358,
+        "profit_factor": 1.8523809523809522,
+        "net_pnl": "356.12"
+      }
+    },
+    "by_session": {
+      "london_ny_overlap": {
+        "trade_count": 67,
+        "win_rate": 0.29850746268656714,
+        "expectancy_r": -0.27149253731343287,
+        "profit_factor": 0.6426326129666012,
+        "net_pnl": "-1814.17"
+      }
+    }
+  },
+  {
+    "strategy_id": "sq_s2_bw20.0_v0.5_t3.0_h720",
+    "signals": 66,
+    "trades": 66,
+    "metrics": {
+      "trade_count": 66,
+      "win_count": 22,
+      "loss_count": 44,
+      "win_rate": 0.3333333333333333,
+      "expectancy_r": -0.27984848484848485,
+      "median_r": -1.19,
+      "avg_r": -0.27984848484848485,
+      "gross_pnl": "-836.78",
+      "total_fees": "800.79",
+      "net_pnl": "-1843.23",
+      "profit_factor": 0.6652166032263912,
+      "max_drawdown_r": "26.2900",
+      "fee_share_of_gross": null,
+      "by_exit_reason": {
+        "stop_loss": 39,
+        "take_profit": 16,
+        "max_hold_time": 11
+      },
+      "by_strategy": {
+        "sq_s2_bw20.0_v0.5_t3.0_h720": {
+          "trade_count": 66,
+          "win_rate": 0.3333333333333333,
+          "expectancy_r": -0.27984848484848485
+        }
+      }
+    },
+    "by_regime": {
+      "range": {
+        "trade_count": 12,
+        "win_rate": 0.16666666666666666,
+        "expectancy_r": -0.7908333333333334,
+        "profit_factor": 0.16608084358523728,
+        "net_pnl": "-946.22"
+      },
+      "breakout_pending": {
+        "trade_count": 36,
+        "win_rate": 0.2777777777777778,
+        "expectancy_r": -0.4038888888888889,
+        "profit_factor": 0.5611228493812255,
+        "net_pnl": "-1449.95"
+      },
+      "trend_down": {
+        "trade_count": 7,
+        "win_rate": 0.5714285714285714,
+        "expectancy_r": 0.4642857142857143,
+        "profit_factor": 1.7471264367816093,
+        "net_pnl": "321.71"
+      },
+      "trend_up": {
+        "trade_count": 11,
+        "win_rate": 0.5454545454545454,
+        "expectancy_r": 0.20999999999999996,
+        "profit_factor": 1.3660855784469095,
+        "net_pnl": "231.23"
+      }
+    },
+    "by_session": {
+      "london_ny_overlap": {
+        "trade_count": 38,
+        "win_rate": 0.2894736842105263,
+        "expectancy_r": -0.37973684210526315,
+        "profit_factor": 0.5718100890207715,
+        "net_pnl": "-1438.30"
+      },
+      "london": {
+        "trade_count": 28,
+        "win_rate": 0.39285714285714285,
+        "expectancy_r": -0.1442857142857143,
+        "profit_factor": 0.8118304611085235,
+        "net_pnl": "-404.93"
+      }
+    }
+  },
+  {
+    "strategy_id": "ls_r1_s2_v2.0_w0.0_t3.0_b0.25",
+    "signals": 20,
+    "trades": 20,
+    "metrics": {
+      "trade_count": 20,
+      "win_count": 5,
+      "loss_count": 15,
+      "win_rate": 0.25,
+      "expectancy_r": -0.3685,
+      "median_r": -0.645,
+      "avg_r": -0.3685,
+      "gross_pnl": "-335.27",
+      "total_fees": "340.25",
+      "net_pnl": "-734.87",
+      "profit_factor": 0.4765625,
+      "max_drawdown_r": "10.1000",
+      "fee_share_of_gross": null,
+      "by_exit_reason": {
+        "stop_loss": 10,
+        "max_hold_time": 9,
+        "take_profit": 1
+      },
+      "by_strategy": {
+        "ls_r1_s2_v2.0_w0.0_t3.0_b0.25": {
+          "trade_count": 20,
+          "win_rate": 0.25,
+          "expectancy_r": -0.3685
+        }
+      }
+    },
+    "by_regime": {
+      "breakout_pending": {
+        "trade_count": 20,
+        "win_rate": 0.25,
+        "expectancy_r": -0.3685,
+        "profit_factor": 0.4765625,
+        "net_pnl": "-734.87"
+      }
+    },
+    "by_session": {
+      "london": {
+        "trade_count": 8,
+        "win_rate": 0.25,
+        "expectancy_r": -0.12624999999999997,
+        "profit_factor": 0.8631436314363143,
+        "net_pnl": "-99.08"
+      },
+      "london_ny_overlap": {
+        "trade_count": 12,
+        "win_rate": 0.25,
+        "expectancy_r": -0.53,
+        "profit_factor": 0.05074626865671642,
+        "net_pnl": "-635.79"
+      }
+    }
+  },
+  {
+    "strategy_id": "tp_short_s2_p0.5_b1.0_t1.5_adx20.0",
+    "signals": 0,
+    "trades": 0,
+    "metrics": {
+      "trade_count": 0,
+      "win_count": 0,
+      "loss_count": 0,
+      "win_rate": null,
+      "expectancy_r": null,
+      "median_r": null,
+      "avg_r": null,
+      "gross_pnl": "0",
+      "total_fees": "0",
+      "net_pnl": "0",
+      "profit_factor": null,
+      "max_drawdown_r": "0",
+      "fee_share_of_gross": null,
+      "by_exit_reason": {},
+      "by_strategy": {}
+    },
+    "by_regime": {},
+    "by_session": {}
+  },
+  {
+    "strategy_id": "tp_both_s2_p0.5_b1.0_t1.5_adx25.0",
+    "signals": 0,
+    "trades": 0,
+    "metrics": {
+      "trade_count": 0,
+      "win_count": 0,
+      "loss_count": 0,
+      "win_rate": null,
+      "expectancy_r": null,
+      "median_r": null,
+      "avg_r": null,
+      "gross_pnl": "0",
+      "total_fees": "0",
+      "net_pnl": "0",
+      "profit_factor": null,
+      "max_drawdown_r": "0",
+      "fee_share_of_gross": null,
+      "by_exit_reason": {},
+      "by_strategy": {}
+    },
+    "by_regime": {},
+    "by_session": {}
+  }
+]

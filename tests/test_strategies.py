@@ -18,6 +18,7 @@ import pytest
 from finding_alpha.contracts.features import FeatureSnapshot, RegimeState
 from finding_alpha.contracts.signals import SignalCandidate
 from finding_alpha.strategies.liquidity_sweep_v1 import find_signal as sweep_signal
+from finding_alpha.strategies.prev_day_breakdown_v1 import find_signal as breakdown_signal
 from finding_alpha.strategies.squeeze_v1 import find_signal as squeeze_signal
 from finding_alpha.strategies.trend_pullback_v1 import find_signal as pullback_signal
 
@@ -313,3 +314,39 @@ class TestTrendPullback:
         sig = pullback_signal(snap, _regime("trend_up"), _NOW)
         with pytest.raises(Exception):
             sig.side = "short"
+
+
+# ── prev_day_breakdown_v1 ─────────────────────────────────────────────────────
+
+class TestPrevDayBreakdown:
+    def _snap(self, close=49000.0, pdl=50000.0, atr=500.0, vol_z=2.5):
+        return _snap(
+            close=Decimal(f"{close:.2f}"),
+            prev_day_low=Decimal(f"{pdl:.2f}"),
+            atr_14=Decimal(f"{atr:.2f}"),
+            volume_z_score=Decimal(f"{vol_z:.2f}"),
+        )
+
+    def test_requires_bearish_or_compression_regime(self):
+        snap = self._snap()
+        assert breakdown_signal(snap, _regime("range"), _NOW) is None
+        assert breakdown_signal(snap, _regime("trend_down"), _NOW) is not None
+
+    def test_requires_close_below_prev_day_low(self):
+        snap = self._snap(close=50100.0, pdl=50000.0)
+        assert breakdown_signal(snap, _regime("trend_down"), _NOW) is None
+
+    def test_requires_volume_spike(self):
+        snap = self._snap(vol_z=1.0)
+        assert breakdown_signal(snap, _regime("trend_down"), _NOW) is None
+
+    def test_blocks_ny_solo_session(self):
+        ny = datetime(2025, 6, 1, 18, 0, tzinfo=timezone.utc)
+        assert breakdown_signal(self._snap(), _regime("trend_down"), ny) is None
+
+    def test_produces_valid_short_signal(self):
+        sig = breakdown_signal(self._snap(), _regime("trend_down"), _NOW)
+        assert sig is not None
+        assert sig.side == "short"
+        assert sig.invalidation_price > sig.entry_reference
+        assert sig.target_prices[0] < sig.entry_reference

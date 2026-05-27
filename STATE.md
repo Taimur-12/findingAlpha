@@ -2,7 +2,7 @@
 
 Last updated: 2026-05-27
 
-## Current Phase: Phase 7 — Authoritative Event-Driven Validation
+## Current Phase: Phase 8 — Live-Data Paper Runtime (paper-only probation)
 
 ## Phase Status
 
@@ -15,8 +15,8 @@ Last updated: 2026-05-27
 | 4 | Feature + Regime Engine | COMPLETE |
 | 5 | Strategy Research + Fast Rejection | COMPLETE |
 | 6 | Portfolio, Risk, Execution Simulation | COMPLETE |
-| 7 | Authoritative Event-Driven Validation | IN PROGRESS |
-| 8 | Live-Data Paper Runtime | BLOCKED |
+| 7 | Authoritative Event-Driven Validation | COMPLETE FOR PAPER-ONLY PROMOTION |
+| 8 | Live-Data Paper Runtime | ACTIVE: BUILD PAPER-ONLY PROBATION |
 | 9 | Research Agent Shadow Mode | BLOCKED |
 | 10 | Private API + Testnet Execution | BLOCKED |
 | 11 | Micro-Live Trading | BLOCKED |
@@ -264,7 +264,7 @@ findingAlpha/
 - [ ] Per-strategy metrics report with fee/slippage breakdown
 - [ ] No-lookahead proof in the full pipeline
 
-## What Phase 7 Will Build
+## Superseded Phase 7 Planning Note
 
 Three concrete strategy modules (liquidity_sweep_v1, squeeze_v1, trend_pullback_v1)
 each with a fast-reject filter and signal production pipeline. The fast-reject layer
@@ -273,3 +273,162 @@ market conditions don't qualify. Each strategy produces SignalCandidates with en
 invalidation price, target, and confidence.
 
 Total test count target after Phase 5: ~60 tests (add ~22 strategy tests).
+
+## Phase 7 Authoritative Result
+
+Phase 7 tooling is implemented, but the current strategies do not qualify for Phase 8 paper trading.
+
+Completed:
+
+- [x] End-to-end event-driven validation runner: CandleEvent stream -> features -> regime -> signals -> portfolio -> risk -> sim -> outcomes
+- [x] Standalone per-strategy validation on real Bybit BTCUSDT 1h historical data
+- [x] Combined portfolio validation with one-position risk policy
+- [x] Walk-forward validation on real historical data with fixed current parameters
+- [x] Per-strategy metrics report with fee/slippage/funding breakdown
+- [x] No-lookahead prefix recomputation proof in the full feature pipeline
+- [ ] Strategy promotion gate passed
+
+Report: `docs/current/phase7_authoritative_event_validation_report.md`
+Raw results: `docs/current/_phase7_event_validation_results.json`, `docs/current/_phase7_independent_strategy_results.json`
+
+Standalone authoritative results on Bybit BTCUSDT 1h, 2025-12-07 to 2026-05-27:
+
+| Strategy | Trades | Win Rate | Expectancy (R) | Profit Factor | Net PnL | Decision |
+|---|---:|---:|---:|---:|---:|---|
+| liquidity_sweep_v1 | 20 | 45.0% | -0.157 | 0.793 | -$331.06 | REJECT / REFINE |
+| squeeze_v1 | 6 | 33.3% | -0.315 | 0.366 | -$190.00 | REJECT |
+| trend_pullback_v1 | 32 | 43.8% | -0.103 | 0.776 | -$341.87 | REJECT / REWORK |
+
+Combined portfolio result: 32 trades, expectancy -0.109R, profit factor 0.773, net PnL -$359.75.
+No-lookahead proof passed.
+
+Phase 8 remains blocked. The next work is Phase 7B / Strategy Refinement:
+
+- expand historical data beyond 6 months before trusting low-frequency results
+- refine or replace liquidity_sweep_v1; current next-bar execution turns it negative
+- rework trend_pullback_v1 only if focusing on trend_down plus London/overlap filters, and validate on larger data
+- keep squeeze_v1 rejected unless redesigned from scratch
+
+## Phase 7B Strategy Refinement Result
+
+Extended Bybit BTCUSDT history was fetched for 730 days:
+- 1h candles: 17,521 rows, 0 gaps
+- 15m candles: 70,081 rows, 0 gaps
+- funding: 2,191 rows
+- 1h open interest: 17,521 rows
+
+Current Phase 5 strategies were revalidated and remain rejected:
+- liquidity_sweep_v1: negative on 1h and 15m
+- squeeze_v1: near-flat/low sample on 1h, negative on 15m
+- trend_pullback_v1: negative on 1h and 15m
+
+New candidate implemented: `prev_day_breakdown_v1`
+- File: `src/finding_alpha/strategies/prev_day_breakdown_v1.py`
+- Hypothesis: high-volume close below prior day low continues lower in bearish/compression regimes
+- Direction: short only
+- Timeframe: 1h
+- Sessions: Asia, London, London-NY overlap, wind-down; NY solo blocked
+- Risk used in candidate report: 0.25% per trade
+
+Candidate report: `docs/current/phase7b_prev_day_breakdown_candidate_report.md`
+Raw candidate results: `docs/current/_phase7b_prev_day_breakdown_candidate.json`
+
+Authoritative candidate metrics:
+
+| Strategy | Trades | Win Rate | Expectancy (R) | Profit Factor | Net PnL | Decision |
+|---|---:|---:|---:|---:|---:|---|
+| prev_day_breakdown_v1 | 95 | 31.6% | +0.420 | 1.441 | +$1,015.03 | PAPER-ONLY CANDIDATE |
+
+Walk-forward candidate-only:
+- 21 windows
+- 71 test trades
+- aggregate expectancy: +0.469R
+- aggregate net PnL: +$843.47 at 0.25% risk/trade
+- profitable windows: 9/21
+
+Promotion decision:
+- Do **not** promote to live or micro-live.
+- It does not meet the default 300 historical trade rule.
+- It is acceptable to move into Phase 8 paper-only as an explicitly low-frequency candidate, with 6-8 weeks minimum live-data observation before any private API/testnet execution decision.
+
+## Phase 7B Additional Strategy Probe: waqar-strategy-1
+
+User-defined hypothesis tested:
+- Name: `waqar-strategy-1`
+- 15m scalping EMA technique
+- EMA set: 9, 13, 21, 55, 300
+- Interpretation tested: EMA55 crossing EMA300 defines trend; EMA9/13/21/55 alignment or fast crosses act as confirmation
+
+Probe files:
+- Script: `notebooks/phase7b_waqar_strategy_1_probe.py`
+- Report: `docs/current/phase7b_waqar_strategy_1_probe.md`
+- Raw results: `docs/current/_phase7b_waqar_strategy_1_probe.json`
+
+Best tested variant:
+- `aligned_stack_adx20_fast_cross` with `runner_1p0_3p0_360m`
+- trades: 376
+- win rate: 30.9%
+- expectancy: -0.370R
+- profit factor: 0.675
+- net PnL: -$3,460.34
+- max drawdown: 149.60R
+
+Decision:
+- REJECTED.
+- Do not promote to Phase 8.
+- Do not keep tuning this idea unless the hypothesis changes materially; current evidence says simple 15m EMA scalping is structurally negative after fees/slippage/funding.
+
+## Resume Directive: What To Do Next
+
+The next session should start Phase 8, not more Phase 7 tuning.
+
+Build Phase 8 as a zero-capital paper runtime for `prev_day_breakdown_v1` only:
+- Bybit public live data only; no private API keys yet.
+- BTCUSDT only.
+- 1h timeframe only.
+- Use only final/confirmed candles.
+- Run deterministic path: final candle -> features -> regime -> `prev_day_breakdown_v1` -> portfolio sizing -> risk gate -> paper simulator -> Matrix log.
+- Simulated risk: 0.25% per trade.
+- One open paper position max.
+- No live orders, no micro-live, no testnet/private execution in this phase.
+
+Frozen Phase 8 candidate parameters:
+- strategy: `prev_day_breakdown_v1`
+- direction: short only
+- entry premise: high-volume close below prior day low
+- allowed regimes: `trend_down`, `breakout_pending`
+- allowed sessions: Asia, London, London-NY overlap, wind-down
+- blocked session: NY solo
+- volume filter: `volume_z_score >= 2.0`
+- stop: entry + 0.75 ATR
+- target: entry - 4.5 ATR
+- max hold: 12h
+
+Required Phase 8 safety checks:
+- no signal from unfinished candle
+- no signal when candle finality cannot be proven
+- no paper trade without stop
+- no duplicate open paper position
+- no stale market data
+- no missing Matrix audit event
+- no parameter changes during paper observation
+
+Phase 8 observation gate:
+- minimum 6-8 weeks because the candidate is low frequency
+- positive or non-broken paper expectancy
+- runtime can run unattended without manual fixes
+- every signal, rejection, paper fill, paper exit, and open position is logged
+- no unprotected paper position occurs
+- paper behavior roughly matches backtest assumptions
+
+Blocked until Phase 8 gate passes:
+- Phase 9 Research Agent influence
+- Phase 10 private API/testnet execution
+- Phase 11 micro-live
+- any live capital
+
+Engineering priority for next session:
+1. Implement live public Bybit paper data runtime.
+2. Implement paper state/logging/report files.
+3. Add tests for candle finality, stale data, duplicate position blocking, and paper audit logging.
+4. Run the runtime in dry paper mode and generate the first Phase 8 paper status report.
