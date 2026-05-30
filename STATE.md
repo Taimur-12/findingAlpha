@@ -1,6 +1,6 @@
 # Finding Alpha — Project State
 
-Last updated: 2026-05-30 (Phase 10 green — paused for partner alignment)
+Last updated: 2026-05-30 (Phase 10 green — paused for partner alignment; Streamlit dashboard added, repo hygiene pass)
 
 ## Current Phase: PAUSE — partner strategy review before any capital deployment
 
@@ -565,6 +565,54 @@ Data updated: 1h candles extended to 1095 days (2023-05-28 to 2026-05-27, 26,281
 - Reconciliation report → 0 divergences ✅
 - Cancel → exchange confirmed `CANCELED` ✅
 - Pre-resolution: hit `10024` (Demo Trading + KYC) then `110007` (BTC collateral with USDT-perp). Fixed by KYC, moving funds Funding → Unified, converting BTC → USDT.
+
+## Dashboard / UI Layer (added 2026-05-30)
+
+Streamlit dashboard at `dashboard/`. Read-only observability over the paper/sim
+state — no domain types leak into the UI (all access goes through
+`dashboard/data/loader.py`, which returns plain dicts/DataFrames).
+
+**Structure:**
+- `dashboard/app.py` — Overview (KPI strip, equity curve, strategy cards, recent trades, advisory snapshot)
+- `dashboard/pages/1_Performance.py` — metrics, equity+drawdown, R-multiple dist, monthly P&L
+- `dashboard/pages/2_Live_Status.py` — system health, open positions, market context, advisory detail
+- `dashboard/pages/3_Risk_Monitor.py` — circuit breaker, risk gauges, drawdown history, param reference
+- `dashboard/pages/4_Strategy_Research.py` — backtest evidence, walk-forward, Phase 11 pre-flight gate
+- `dashboard/pages/5_Advisory_Log.py` — current advisory + history
+- `dashboard/pages/6_Trade_Log.py` — filterable trade table, CSV export, per-trade inspector
+- `dashboard/data/loader.py` — single data-access layer
+- `dashboard/.streamlit/config.toml` — dark theme, binds `0.0.0.0:8501`
+
+**Run:** `pip install -e ".[dashboard]"` then `streamlit run dashboard/app.py`
+(new `dashboard` optional-dependency group in `pyproject.toml`: streamlit, plotly,
+streamlit-autorefresh, numpy).
+
+**IMPORTANT — data source caveat:** The dashboard reads SEEDED SIMULATION data from
+`paper/sim/` (14 historical-replay trades), NOT the live cron paper runners. The real
+runner dirs (`paper/state.json`, `paper/composite/state.json`) start flat at $10k until
+24/7 cloud operation begins. The Overview header now carries an unmissable
+"SIMULATED DATA — NOT LIVE PERFORMANCE" banner. Do not present dashboard equity/P&L as a
+live track record.
+
+**Known UI gaps (not yet fixed):**
+- Simulated-data banner is only on `app.py`; sub-pages have smaller inline captions.
+- `4_Strategy_Research.py` walk-forward chart uses APPROXIMATED per-window returns
+  (`WF_DATA`, hardcoded), not real per-window backtest output. Disclaimed in a caption
+  but should be wired to `_phase7c_short_composite_v1.json` or removed before any
+  external/shareholder viewing.
+- `4_Strategy_Research.py` backtest stats (`BACKTEST` dict) are hardcoded, not read from
+  the raw `_phase7*.json` results — can silently drift from research.
+- `config.toml` binds `0.0.0.0` with no auth — gate behind basic auth / SSH tunnel before
+  any cloud deployment.
+
+## Repo Hygiene Pass (2026-05-30)
+
+- Removed 3 phantom directories created by a Windows path-join bug
+  (`E:MyProjects...dashboard.streamlit/`, `...data/`, `...pages/`) and `streamlit_debug.log`.
+- README updated: phase 7 → phase 10 complete, strategy list corrected
+  (sweep/squeeze/pullback marked rejected), test count 142 → 275 with full 12-file table,
+  new Dashboard section with simulated-data note.
+- Test suite is now **275 tests** across 12 files (README previously said 142).
 
 ## Resume Directive: What To Do Next
 

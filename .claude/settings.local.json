@@ -29,7 +29,14 @@
       "Bash(.venv/bin/python --version)",
       "Bash(.venv/bin/python notebooks/phase8_paper_runner.py --status)",
       "Bash(.venv/bin/python -m pytest tests/test_execution.py -v)",
-      "Bash(.venv/bin/python notebooks/phase10_testnet_smoke.py)"
+      "Bash(.venv/bin/python notebooks/phase10_testnet_smoke.py)",
+      "Bash(pip show *)",
+      "PowerShell(New-Item *)",
+      "PowerShell(netstat *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(grep -nE '^#{1,3} ' critical_gap.md)",
+      "Bash(rm -rf \"E:MyProjectsfindingAlphadashboard.streamlit\" \"E:MyProjectsfindingAlphadashboarddata\" \"E:MyProjectsfindingAlphadashboardpages\" streamlit_debug.log)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }

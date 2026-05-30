@@ -32,6 +32,12 @@ research = [
     "anthropic>=0.40",
     "python-dotenv>=1.0",
 ]
+dashboard = [
+    "streamlit>=1.36",
+    "plotly>=5.22",
+    "streamlit-autorefresh>=1.0",
+    "numpy>=1.26",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
