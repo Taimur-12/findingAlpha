@@ -1,12 +1,14 @@
 # Finding Alpha — Project State
 
-Last updated: 2026-05-30
+Last updated: 2026-05-30 (Phase 10 green — paused for partner alignment)
 
-## Current Phase: ACCELERATED BUILD — Phases 9, 10, 11 built in one pass
+## Current Phase: PAUSE — partner strategy review before any capital deployment
 
-Phase 8 runtime is complete and validated via historical replay (2026-05-29 sim: composite produced 12 trades, +0.106 avg R, no crashes, no unprotected positions). Live observation runs in the background via cron — it no longer blocks downstream phases. Phases 9, 10, and 11 are being built immediately so the full trading stack exists before any real money or multi-week observation gates.
+Phases 9 and 10 are complete. Phase 10 testnet smoke test passed end-to-end against the real Bybit testnet on 2026-05-30: submit → reconcile → cancel round-trip green, zero divergences, exchange-confirmed cancel. The execution stack works.
 
-Strategies frozen for this build: `prev_day_breakdown_v1`, `short_composite_v1`. No tuning during the accelerated build.
+Next step is **not** cloud deployment or live capital. User is meeting with partner to revisit strategy direction. The two frozen strategies (`prev_day_breakdown_v1`, `short_composite_v1`) remain in place as-is until that decision is made.
+
+Strategies frozen for this build: `prev_day_breakdown_v1`, `short_composite_v1`. No tuning until partner alignment complete.
 
 ## Long-Term Strategic Direction (added 2026-05-30)
 
@@ -36,9 +38,9 @@ ML and LLMs stay out of the hot path. Hot path (signal → sizing → risk → e
 | 6 | Portfolio, Risk, Execution Simulation | COMPLETE |
 | 7 | Authoritative Event-Driven Validation | COMPLETE — short_composite_v1 promoted |
 | 8 | Live-Data Paper Runtime | RUNTIME COMPLETE — sim validated, cron observation running in background |
-| 9 | LLM Advisory Layer | ACTIVE BUILD (accelerated — historical-replay validation, no multi-week shadow wait) |
-| 10 | Private API + Bybit Testnet Execution | ACTIVE BUILD (testnet keys, real exchange behavior, no real capital) |
-| 11 | Micro-Live Trading | CODE BUILD ACTIVE — capital deployment deferred until accelerated build complete |
+| 9 | LLM Advisory Layer | COMPLETE — Claude advisor wired into runtime, advisory log persisting |
+| 10 | Private API + Bybit Testnet Execution | COMPLETE — live testnet smoke test passed 2026-05-30 |
+| 11 | Micro-Live Trading | PAUSED — code-ready, deferred pending partner strategy review |
 | 11.5 | Data Infrastructure Upgrade (DuckDB + counterfactual log) | PLANNED — after micro-live capital deployed |
 | 12 | Live v1 | BLOCKED until micro-live capital deployment proves out |
 | 12.5 | Cold-path ML (trade outcome classifier, decay detector, regime ML second-opinion) | PLANNED — after live v1 stable |
@@ -484,32 +486,56 @@ Monitor independently. Do not combine into one portfolio until 8-week observatio
 
 Data updated: 1h candles extended to 1095 days (2023-05-28 to 2026-05-27, 26,281 rows, 0 gaps).
 
+## Phase 9 Result — LLM Advisory Layer (COMPLETE)
+
+- `src/finding_alpha/research/advisory.py` — frozen Pydantic schema (`AdvisoryState`), file loader with TTL check, Claude API caller with structured-output enforcement and reason-code validation.
+- Runtime integration in `src/finding_alpha/paper/runtime.py` — advisory loaded once per bar, applied as `risk_scalar` multiplier and `trade_policy` gate before signal evaluation. Missing/expired advisory defaults to `risk_scalar=1.0` (upside-only).
+- Logging: every advisory decision written to `paper/advisory_log.jsonl` (gitignored, regenerable).
+- Tests: `tests/test_advisory.py` — schema invariants, TTL expiry, Claude-mock structured-output happy path + error paths.
+- Notebook runner: `notebooks/phase9_advisory_runner.py` — manual one-shot to refresh `advisory.json` from current state.
+
+## Phase 10 Result — Bybit Testnet Execution (COMPLETE)
+
+- `src/finding_alpha/execution/bybit_client.py` — HMAC-SHA256 V5 signing, `create_order`, `cancel_order`, `query_order`, `query_positions`, `query_wallet_balance`. UTA-only (UNIFIED account type). DI for `httpx.Client` so tests use `MockTransport`.
+- `src/finding_alpha/execution/order_state.py` — 11-state machine × 11 events, terminal-state guards, `InvalidTransitionError` on illegal transitions.
+- `src/finding_alpha/execution/execution_agent.py` — `submit_plan`, `submit_stop` (idempotent), `apply_bybit_status` (unknown statuses / illegal transitions → `RECONCILIATION_REQUIRED`, no raise), `cancel_leg` (pre-marks intent before API call), `reconcile_leg` (orderLinkId lookup, force-syncs to exchange truth).
+- `src/finding_alpha/execution/reconciliation.py` — detection-only; flags `STATE_MISMATCH`, `UNPROTECTED_POSITION`, `GHOST_POSITION`, `MISSING_POSITION`. Caller decides response.
+- `notebooks/phase10_testnet_smoke.py` — live round-trip script. Limit SELL 0.001 BTC @ $200k (safe — won't fill), then reconcile + cancel.
+- Tests: `tests/test_execution.py` (16), `tests/test_reconciliation.py` (12). All green.
+
+**Live smoke test result (2026-05-30, real Bybit testnet, UTA, $73k USDT collateral):**
+- Wallet auth ✅
+- Order submit → exchange acknowledged ✅
+- Reconcile (open) → state synced to `OPEN` ✅
+- Reconciliation report → 0 divergences ✅
+- Cancel → exchange confirmed `CANCELED` ✅
+- Pre-resolution: hit `10024` (Demo Trading + KYC) then `110007` (BTC collateral with USDT-perp). Fixed by KYC, moving funds Funding → Unified, converting BTC → USDT.
+
 ## Resume Directive: What To Do Next
 
-**Current state (2026-05-29):** Accelerated build path active. Phases 9, 10, and 11 are being built in one pass before any multi-week observation gate. Paper observation runs in background via cron — it does not block downstream work.
+**Current state (2026-05-30):** Phase 10 green. Execution stack is live-verified on testnet. **Pause point** before any capital deployment or cloud automation.
 
-### Accelerated build order (current sprint)
+### Immediate next step (after partner meeting)
 
-1. **Phase 9 — LLM Advisory Layer**
-   - `src/finding_alpha/research/advisory.py` — schema, loader, Claude API caller
-   - Runtime gate in `paper/runtime.py` — reads `paper/advisory.json` before signal evaluation
-   - Default `risk_scalar=1.0` when no advisory present (LLM is upside-only)
-   - Validation: replay historical data through sim runner with advisories injected; confirm gates fire correctly
-   - **Defer:** crisis scanner, CryptoPanic polling, OI/liquidation thresholds → Phase 11
+User is meeting with partner to revisit strategy direction. Two frozen strategies (`prev_day_breakdown_v1`, `short_composite_v1`) remain in place. Outcomes possible from that meeting:
 
-2. **Phase 10 — Bybit Private API + Testnet**
-   - `src/finding_alpha/execution/bybit_client.py` — auth, order placement, cancel, query, position reconcile
-   - Idempotent client order IDs
-   - Order state machine (planned → submitted → ack → open → filled/canceled)
-   - Validation: end-to-end smoke test on testnet — place order, fill, close, verify accounting matches paper logic
+- Approve current strategies as-is → proceed to cloud deployment + micro-live.
+- Refine / replace one or both strategies → return to Phase 5/7 research loop with new hypothesis. Phase 8 paper observation re-runs against the new candidate before any live capital.
+- Add a second instrument / direction → defer to Phase 13 expansion path.
 
-3. **Phase 11 — Micro-Live Code (capital deferred)**
-   - Same code as Phase 10, with `BYBIT_LIVE_MODE` env flag flipping testnet → mainnet
-   - Hard-coded $5–50 position cap until manually unlocked
-   - Pre-flight check (eligibility, isolated margin, precision, feeds fresh)
-   - **Capital deployment deferred** until accelerated build complete and human review
+### Queued (post-partner-alignment, in order)
 
-### Background work (runs in parallel, does not block)
+1. **Cloud deployment** (~$6/mo DigitalOcean droplet)
+   - 24/7 paper observation + advisory refresh on cron
+   - Partner SSH access
+   - Deploy script + systemd service files needed
+2. **HANDOFF.md update** — partner-readable system summary before sharing repo access
+3. **Phase 11 — micro-live capital** ($5–50 cap)
+   - `BYBIT_LIVE_MODE=mainnet` flip
+   - Pre-flight (eligibility, isolated margin, precision, feed freshness)
+   - Hard-coded position cap until manually unlocked
+
+### Background work (still running)
 
 ```bash
 # Cron entries already installed — runs hourly:
@@ -521,9 +547,17 @@ Paper state files:
 - `paper/state.json` and `paper/trades.jsonl` — breakdown strategy
 - `paper/composite/state.json` and `paper/composite/trades.jsonl` — composite strategy
 
-### Blocked until accelerated build complete
+### Bybit testnet setup notes (for future-you)
+
+- Account type must be **UTA (Unified Trading Account)**. Classic accounts return `accountType only support UNIFIED` errors.
+- Testnet faucet credits BTC to **Funding wallet**. Must: (a) transfer to Unified, (b) convert to USDT, or USDT-perp orders will hit `110007 InsufficientAB`.
+- KYC must be **approved** (not pending). Pending → silent `10024` regulatory block.
+- Demo Trading mode (`api-demo.bybit.com`) is a separate sandbox from standard testnet (`api-testnet.bybit.com`). Our client uses standard testnet.
+
+### Blocked until partner alignment
 
 - Real capital (Phase 12 live v1)
+- Cloud deployment
 - Strategy tuning or new strategies
 - Phase 13 expansion (ETHUSDT, second strategy)
 
