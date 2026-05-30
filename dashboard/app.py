@@ -25,6 +25,7 @@ from data.loader import (
     system_health,
     trade_metrics,
 )
+from data.source import data_source_selector, source_label
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -36,6 +37,9 @@ st.set_page_config(
 
 # Auto-refresh every 60 seconds
 st_autorefresh(interval=60_000, key="overview_refresh")
+
+# Sidebar sim/live selector — sets st.session_state.data_source so all loader calls below resolve to the right directory.
+data_source_selector()
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 s1, s2     = load_both_states()
@@ -95,8 +99,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Header ─────────────────────────────────────────────────────────────────────
-mode_label = "SIMULATION"
-mode_colour = PURPLE
+mode_label, banner_text, mode_colour = source_label()
 
 h1, h2 = st.columns([3, 1])
 with h1:
@@ -118,16 +121,15 @@ with h2:
 
 st.divider()
 
-# ── Simulated-data banner (unmissable) ──────────────────────────────────────────
+# ── Source-mode banner (unmissable) ─────────────────────────────────────────────
+_banner_colour = AMBER if mode_label == "SIMULATION" else BLUE
 st.markdown(f"""
-<div style='background:{AMBER}1A; border:1px solid {AMBER}; border-radius:8px;
+<div style='background:{_banner_colour}1A; border:1px solid {_banner_colour}; border-radius:8px;
             padding:12px 18px; margin-bottom:12px; display:flex; align-items:center;'>
-    <span style='font-size:20px; margin-right:12px'>⚠</span>
+    <span style='font-size:20px; margin-right:12px'>{'⚠' if mode_label == 'SIMULATION' else 'ℹ'}</span>
     <div style='color:#E6EDF3; font-size:14px; line-height:1.5'>
-        <strong style='color:{AMBER}; letter-spacing:0.04em'>SIMULATED DATA — NOT LIVE PERFORMANCE.</strong>
-        Equity, P&amp;L, and trades below are from historical replay seeded in
-        <code>paper/sim/</code>, not real trading. No capital is deployed. The live
-        paper runners start flat until 24/7 cloud operation begins.
+        <strong style='color:{_banner_colour}; letter-spacing:0.04em'>{mode_label} MODE.</strong>
+        {banner_text}
     </div>
 </div>
 """, unsafe_allow_html=True)

@@ -11,6 +11,9 @@ from streamlit_autorefresh import st_autorefresh
 from data.loader import load_advisory, load_advisory_log
 
 st.set_page_config(page_title="Advisory Log · Finding Alpha", layout="wide")
+
+from data.source import data_source_selector
+data_source_selector()
 st_autorefresh(interval=60_000, key="adv_refresh")
 
 GREEN  = "#3FB950"

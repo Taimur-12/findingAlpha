@@ -36,7 +36,9 @@
       "PowerShell(Stop-Process *)",
       "Bash(grep -nE '^#{1,3} ' critical_gap.md)",
       "Bash(rm -rf \"E:MyProjectsfindingAlphadashboard.streamlit\" \"E:MyProjectsfindingAlphadashboarddata\" \"E:MyProjectsfindingAlphadashboardpages\" streamlit_debug.log)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:8501/)",
+      "Read(//private/tmp/**)"
     ]
   }
 }

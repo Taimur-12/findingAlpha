@@ -22,6 +22,9 @@ from data.loader import (
 )
 
 st.set_page_config(page_title="Performance · Finding Alpha", layout="wide")
+
+from data.source import data_source_selector
+data_source_selector()
 st_autorefresh(interval=60_000, key="perf_refresh")
 
 GREEN  = "#3FB950"

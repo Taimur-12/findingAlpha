@@ -31,7 +31,7 @@ from finding_alpha.data.storage import save_candles, save_funding, save_open_int
 DATA_DIR = ROOT / "data"
 SYMBOL = "BTCUSDT"
 DAYS = int(os.getenv("FINDING_ALPHA_FETCH_DAYS", "730"))
-END_DT = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+END_DT = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
 START_DT = END_DT - timedelta(days=DAYS)
 
 

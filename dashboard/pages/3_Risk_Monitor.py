@@ -19,6 +19,9 @@ from data.loader import (
 )
 
 st.set_page_config(page_title="Risk Monitor · Finding Alpha", layout="wide")
+
+from data.source import data_source_selector
+data_source_selector()
 st_autorefresh(interval=30_000, key="risk_refresh")
 
 GREEN  = "#3FB950"

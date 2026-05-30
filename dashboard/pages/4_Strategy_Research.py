@@ -13,6 +13,9 @@ from data.loader import load_trades, trade_metrics
 
 st.set_page_config(page_title="Strategy Research · Finding Alpha", layout="wide")
 
+from data.source import data_source_selector
+data_source_selector()
+
 GREEN  = "#3FB950"
 RED    = "#F85149"
 AMBER  = "#D29922"

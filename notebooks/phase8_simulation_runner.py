@@ -52,6 +52,10 @@ FUNDING_DAYS = 14
 OI_DAYS = 14
 
 
+def _to_ns_utc(s: pd.Series) -> pd.Series:
+    return pd.to_datetime(s, utc=True).astype("datetime64[ns, UTC]")
+
+
 def _load_candles() -> pd.DataFrame:
     path = _DATA_DIR / "bybit" / "BTCUSDT" / "1h" / "candles.parquet"
     if not path.exists():
@@ -60,7 +64,7 @@ def _load_candles() -> pd.DataFrame:
             "Run: FINDING_ALPHA_FETCH_DAYS=1095 python notebooks/phase7b_fetch_extended_bybit.py"
         )
     df = pd.read_parquet(path)
-    df["open_time"] = pd.to_datetime(df["open_time"], utc=True)
+    df["open_time"] = _to_ns_utc(df["open_time"])
     return df.sort_values("open_time").reset_index(drop=True)
 
 
@@ -69,7 +73,7 @@ def _load_funding() -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame(columns=["venue", "symbol", "funding_time", "funding_rate"])
     df = pd.read_parquet(path)
-    df["funding_time"] = pd.to_datetime(df["funding_time"], utc=True)
+    df["funding_time"] = _to_ns_utc(df["funding_time"])
     return df.sort_values("funding_time").reset_index(drop=True)
 
 
@@ -78,7 +82,7 @@ def _load_oi() -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame(columns=["venue", "symbol", "timeframe", "ts", "open_interest"])
     df = pd.read_parquet(path)
-    df["ts"] = pd.to_datetime(df["ts"], utc=True)
+    df["ts"] = _to_ns_utc(df["ts"])
     return df.sort_values("ts").reset_index(drop=True)
 
 
