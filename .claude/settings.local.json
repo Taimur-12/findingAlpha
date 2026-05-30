@@ -23,7 +23,13 @@
       "Bash(\"C:\\\\Users\\\\Shazil Nadeem\\\\anaconda3\\\\envs\\\\finding_alpha\\\\python.exe\" notebooks/phase7c_probe.py)",
       "PowerShell(cd E:\\\\MyProjects\\\\findingAlpha; $env:FINDING_ALPHA_FETCH_DAYS = \"1095\"; & \"C:\\\\Users\\\\Shazil Nadeem\\\\anaconda3\\\\envs\\\\finding_alpha\\\\python.exe\" notebooks/phase7b_fetch_extended_bybit.py 2>&1)",
       "Bash(grep -rl \"parent\\\\.parent$\\\\|parent\\\\.parent\\\\b\" notebooks/research/ --include=\"*.py\")",
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Bash(.venv/bin/python -m pytest tests/)",
+      "Read(//Users/taimurjahanzaib/miniforge3/bin/**)",
+      "Bash(.venv/bin/python --version)",
+      "Bash(.venv/bin/python notebooks/phase8_paper_runner.py --status)",
+      "Bash(.venv/bin/python -m pytest tests/test_execution.py -v)",
+      "Bash(.venv/bin/python notebooks/phase10_testnet_smoke.py)"
     ]
   }
 }

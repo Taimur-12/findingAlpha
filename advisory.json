@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "state_id": "30b3cda1-0893-4905-9b0e-b7f54b83b54d",
+  "as_of": "2026-05-29T22:26:58Z",
+  "expires_at": "2026-05-30T22:26:58Z",
+  "assets": [
+    "BTC"
+  ],
+  "event_type": "none",
+  "severity": "0.0",
+  "directional_bias": "0.0",
+  "confidence_multiplier": "1.0",
+  "trade_policy": "normal",
+  "reason_codes": [],
+  "sources": [],
+  "one_sentence_summary": "No recent paper trades to evaluate; defaulting to normal sizing with no restrictions.",
+  "model_id": "claude-sonnet-4-6",
+  "prompt_version": "v1.0",
+  "allowed_strategies": []
+}

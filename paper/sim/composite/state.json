@@ -1,0 +1,10 @@
+{
+  "equity": "10030.22",
+  "peak_equity": "10096.17",
+  "daily_start_equity": "10030.22",
+  "daily_date": "2026-05-27",
+  "open_position": null,
+  "pending_entry": null,
+  "last_processed_bar_ts": "2026-05-27T00:00:00+00:00",
+  "circuit_breaker_active": false
+}

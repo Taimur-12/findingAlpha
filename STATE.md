@@ -447,12 +447,30 @@ Decision:
   - independent paper dir, independent state — run both concurrently
 - [x] 166/166 total tests passing (no regressions)
 
-Phase 8 observation gate (pending):
-- [ ] 6-8 weeks minimum live-data observation
-- [ ] positive or non-broken paper expectancy
-- [ ] runtime runs unattended without manual fixes
-- [ ] no unprotected paper position occurred
-- [ ] paper behavior roughly matches backtest assumptions
+Phase 8 observation gate (revised 2026-05-30, replaces time-based gate):
+
+The original gate was "6–8 weeks of live-data observation." That metric is
+wrong for low-frequency strategies — at ~5–8 trades/month combined, 6 weeks
+yields only ~30–50 closed trades, but with no guarantee of a meaningful
+sample of market conditions. Replaced with a behavior-based gate:
+
+- [ ] **30+ closed paper trades** across the two strategies combined (real
+      sample, not a time proxy)
+- [ ] **At least one paper drawdown of -3% to -5%** observed (proves the
+      system handles a losing streak without manual fixes)
+- [ ] **At least one trend_up window** observed where the system correctly
+      sat flat (proves short-only behavior is intentional, not broken)
+- [ ] **Zero reconciliation errors** across all processed bars (no
+      unprotected positions, no orphan state, no ghost positions)
+- [ ] **Paper expectancy within 2σ of backtest expectancy** (no major
+      backtest/live divergence)
+- [ ] **Advisory log shows ≥10 non-default decisions** (proves the LLM
+      advisor has been running with real context and producing meaningful
+      output, not just defaulting)
+
+At current frequency this gate clears in roughly 4–6 months of cloud
+observation, not 6–8 weeks. That is the real timeline before any live
+capital is appropriate.
 
 ## Phase 7C Result — short_composite_v1
 
@@ -493,6 +511,43 @@ Data updated: 1h candles extended to 1095 days (2023-05-28 to 2026-05-27, 26,281
 - Logging: every advisory decision written to `paper/advisory_log.jsonl` (gitignored, regenerable).
 - Tests: `tests/test_advisory.py` — schema invariants, TTL expiry, Claude-mock structured-output happy path + error paths.
 - Notebook runner: `notebooks/phase9_advisory_runner.py` — manual one-shot to refresh `advisory.json` from current state.
+
+## Architecture Decision — Take-profit handling in live mode (2026-05-30)
+
+**Decision:** Runtime-managed take-profit, not exchange-side TP limit orders.
+
+**Mechanism:** When in `execution_mode="live"`, every poll tick:
+1. `_live_tick` calls `query_position_state()` → gets current mark price.
+2. If entry filled and mark has touched `ctx.target_price` (or `now >=
+   ctx.max_exit_ts`), runtime calls `agent.cancel_leg(LEG_STOP)` then
+   `agent._client.create_order(..., reduce_only=True)` as a market close.
+3. Next tick: position size = 0 → trade is reconstructed via
+   `_build_paper_trade_from_live` with the close fill price.
+
+**Alternatives considered:**
+
+| Option | Why rejected |
+|---|---|
+| Exchange-side TP limit order | Requires OCO (one-cancels-other) logic between stop and TP, which Bybit V5 does not natively wire across separate orders. Would need additional state-machine bookkeeping in ExecutionAgent. |
+| Bybit position-attached TP (`/v5/position/trading-stop`) | Cleaner long-term, but a different endpoint not yet wrapped in BybitClient. Worth revisiting in Phase 12. |
+
+**Tradeoffs (honest):**
+- Worst-case TP slippage = one poll interval (~60s) of mark-price movement.
+  On 1h bars at ATR ~$800, ±$13 per 60s drift. Tolerable.
+- Backtest models TP fill at exact target price; live with runtime-managed
+  TP incurs taker fee + slippage on the close. Net effect on expectancy
+  is small (~3 bps of notional per trade) but real. Compare to a target
+  of 4.5 ATR / ~$3600 — drift is ~0.4% of target, fees are ~5.5 bps. Worth
+  tracking but not a structural distortion.
+- The audit (`critical_gap.md` §2.1) recommends exchange-side TP. That
+  recommendation is defensible but is a different architectural choice
+  with its own tradeoffs — not strictly better. Re-evaluate once we have
+  ≥30 live trades and can measure actual backtest/live divergence.
+
+**Status:** Live wiring complete in `src/finding_alpha/paper/live_execution.py`
++ `src/finding_alpha/paper/runtime.py`. 14 tests in `tests/test_live_execution.py`.
+
+---
 
 ## Phase 10 Result — Bybit Testnet Execution (COMPLETE)
 

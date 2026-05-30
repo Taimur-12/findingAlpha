@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-05-30",
+  "notes": "US macro events that historically move BTC. Update yearly. Times are UTC. Sources: Fed website, BLS, BEA. Add an entry by appending to events; remove past events as desired (the loader filters by date).",
+  "events": [
+    {"date": "2026-06-05", "time_utc": "12:30", "type": "NFP", "detail": "May jobs report"},
+    {"date": "2026-06-10", "time_utc": "12:30", "type": "CPI", "detail": "May inflation"},
+    {"date": "2026-06-17", "time_utc": "18:00", "type": "FOMC", "detail": "Rate decision + summary of economic projections"},
+    {"date": "2026-06-26", "time_utc": "12:30", "type": "PCE", "detail": "May Core PCE (Fed's preferred inflation measure)"},
+    {"date": "2026-07-03", "time_utc": "12:30", "type": "NFP", "detail": "June jobs report"},
+    {"date": "2026-07-15", "time_utc": "12:30", "type": "CPI", "detail": "June inflation"},
+    {"date": "2026-07-29", "time_utc": "18:00", "type": "FOMC", "detail": "Rate decision"},
+    {"date": "2026-07-31", "time_utc": "12:30", "type": "PCE", "detail": "June Core PCE"},
+    {"date": "2026-08-01", "time_utc": "12:30", "type": "NFP", "detail": "July jobs report"},
+    {"date": "2026-08-12", "time_utc": "12:30", "type": "CPI", "detail": "July inflation"},
+    {"date": "2026-08-29", "time_utc": "12:30", "type": "PCE", "detail": "July Core PCE"},
+    {"date": "2026-09-05", "time_utc": "12:30", "type": "NFP", "detail": "August jobs report"},
+    {"date": "2026-09-11", "time_utc": "12:30", "type": "CPI", "detail": "August inflation"},
+    {"date": "2026-09-16", "time_utc": "18:00", "type": "FOMC", "detail": "Rate decision + SEP"},
+    {"date": "2026-09-26", "time_utc": "12:30", "type": "PCE", "detail": "August Core PCE"},
+    {"date": "2026-10-02", "time_utc": "12:30", "type": "NFP", "detail": "September jobs report"},
+    {"date": "2026-10-14", "time_utc": "12:30", "type": "CPI", "detail": "September inflation"},
+    {"date": "2026-10-28", "time_utc": "18:00", "type": "FOMC", "detail": "Rate decision"},
+    {"date": "2026-10-30", "time_utc": "12:30", "type": "PCE", "detail": "September Core PCE"},
+    {"date": "2026-11-06", "time_utc": "12:30", "type": "NFP", "detail": "October jobs report"},
+    {"date": "2026-11-12", "time_utc": "12:30", "type": "CPI", "detail": "October inflation"},
+    {"date": "2026-11-27", "time_utc": "12:30", "type": "PCE", "detail": "October Core PCE"},
+    {"date": "2026-12-04", "time_utc": "12:30", "type": "NFP", "detail": "November jobs report"},
+    {"date": "2026-12-09", "time_utc": "12:30", "type": "CPI", "detail": "November inflation"},
+    {"date": "2026-12-09", "time_utc": "18:00", "type": "FOMC", "detail": "Rate decision + SEP"},
+    {"date": "2026-12-24", "time_utc": "12:30", "type": "PCE", "detail": "November Core PCE"}
+  ]
+}

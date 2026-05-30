@@ -21,6 +21,7 @@ import argparse
 import json
 import sys
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -31,19 +32,29 @@ import anthropic
 from dotenv import load_dotenv
 
 from finding_alpha.contracts.signals import ResearchState
+from finding_alpha.features.snapshot import build_feature_df, build_snapshot
+from finding_alpha.live.feed import (
+    fetch_recent_candles, fetch_recent_funding, fetch_recent_oi,
+)
+from finding_alpha.regime.classifier import classify_regime
 from finding_alpha.research.advisory import save_advisory
 
 MODEL_ID = "claude-sonnet-4-6"
-PROMPT_VERSION = "v1.0"
+PROMPT_VERSION = "v1.1"
 TRADE_LOOKBACK_DAYS = 14
 ADVISORY_VALIDITY_HOURS = 24
+MACRO_LOOKAHEAD_DAYS = 7
+MARKET_LOOKBACK_BARS = 300
 
 ADVISORY_PATH = _ROOT / "advisory.json"
 LOG_PATH = _ROOT / "paper" / "advisory_log.jsonl"
+MACRO_CALENDAR_PATH = _ROOT / "data" / "macro_calendar.json"
 TRADE_FILES = [
     _ROOT / "paper" / "trades.jsonl",
     _ROOT / "paper" / "composite" / "trades.jsonl",
 ]
+MARKET_SYMBOL = "BTCUSDT"
+MARKET_TIMEFRAME = "1h"
 
 
 SYSTEM_PROMPT = """You are a risk advisor for a deterministic crypto trading bot.
@@ -66,10 +77,22 @@ The bot trades two short-only strategies on BTCUSDT 1h perpetuals on Bybit:
 - prev_day_breakdown_v1: shorts when close < prev-day low with vol spike
 - short_composite_v1: same + EMA20 intra-bar rejection in confirmed downtrend
 
-Use recent paper trade performance as your main input. If recent trades have
-been losing, reduce sizing. If recent trades have been winning, default to
-normal sizing. If you see no signal to act, return normal/1.0 — the LLM is
-upside-only; "no opinion" is a valid response.
+Inputs you receive each call:
+- Recent paper trade outcomes (last 14 days)
+- Current BTC market context: price, 24h change, funding rate, ATR percentile,
+  regime classification, volume z-score
+- Upcoming US macro events in the next 7 days (FOMC, CPI, NFP, PCE)
+- The previous advisory (for continuity)
+
+Guidance for reasoning:
+- High ATR percentile (>80) or extreme funding (|z| > 2) suggests a tighter
+  regime — consider reducing sizing.
+- A macro event in the next 24h (especially FOMC, CPI) often warrants reduced
+  sizing or temporary hard block around the release window.
+- Recent paper losses in similar conditions argue for caution; recent wins
+  argue for normal sizing.
+- When you have no clear signal to act, default to normal/1.0. The LLM is
+  upside-only; "no opinion" is a valid response.
 
 Output ONLY a single valid JSON object matching this exact schema:
 
@@ -138,15 +161,116 @@ def load_previous_advisory(path: Path) -> dict | None:
         return None
 
 
+def fetch_market_context(symbol: str = MARKET_SYMBOL, timeframe: str = MARKET_TIMEFRAME) -> dict:
+    """Return a snapshot of current market state: price, 24h change, funding,
+    ATR percentile, regime, volume z-score. Returns {} on any fetch failure
+    so the advisory can still run with degraded inputs."""
+    try:
+        candles = fetch_recent_candles(symbol, timeframe, n=MARKET_LOOKBACK_BARS + 5)
+        if candles.empty or len(candles) < 50:
+            return {"error": "insufficient_candles"}
+
+        funding_df = fetch_recent_funding(symbol, days=14)
+        oi_df = fetch_recent_oi(symbol, timeframe, days=14)
+
+        feature_df = build_feature_df(candles, funding_df, oi_df)
+        snapshot = build_snapshot(feature_df, "bybit", symbol, timeframe)
+        regime = classify_regime(snapshot)
+
+        last_row = feature_df.iloc[-1]
+        close = Decimal(str(last_row["close"]))
+        bar_24_ago = feature_df.iloc[-24] if len(feature_df) >= 25 else feature_df.iloc[0]
+        close_24h_ago = Decimal(str(bar_24_ago["close"]))
+        change_24h_pct = ((close - close_24h_ago) / close_24h_ago * 100).quantize(Decimal("0.01"))
+
+        return {
+            "price": str(close),
+            "change_24h_pct": str(change_24h_pct),
+            "funding_rate": str(snapshot.funding_rate) if snapshot.funding_rate is not None else None,
+            "funding_z": str(snapshot.funding_z_score) if snapshot.funding_z_score is not None else None,
+            "atr_percentile": (
+                str(snapshot.atr_percentile) if snapshot.atr_percentile is not None else None
+            ),
+            "adx_14": str(snapshot.adx_14) if snapshot.adx_14 is not None else None,
+            "rsi_14": str(snapshot.rsi_14) if snapshot.rsi_14 is not None else None,
+            "volume_z": str(snapshot.volume_z_score) if snapshot.volume_z_score is not None else None,
+            "oi_z": str(snapshot.oi_z_score) if snapshot.oi_z_score is not None else None,
+            "regime": regime.regime,
+            "regime_confidence": str(regime.confidence),
+        }
+    except Exception as exc:
+        return {"error": f"{type(exc).__name__}: {exc}"}
+
+
+def load_upcoming_macro_events(
+    now: datetime,
+    lookahead_days: int = MACRO_LOOKAHEAD_DAYS,
+    path: Path = MACRO_CALENDAR_PATH,
+) -> list[dict]:
+    """Return macro events whose date falls within [now, now + lookahead_days]."""
+    if not path.exists():
+        return []
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return []
+
+    events = data.get("events", [])
+    cutoff = (now + timedelta(days=lookahead_days)).date()
+    today = now.date()
+
+    upcoming: list[dict] = []
+    for ev in events:
+        try:
+            ev_date = datetime.fromisoformat(ev["date"]).date()
+        except (KeyError, ValueError):
+            continue
+        if today <= ev_date <= cutoff:
+            upcoming.append(ev)
+    return upcoming
+
+
 def build_user_message(now: datetime) -> str:
     trades = load_recent_trades(now)
     prev = load_previous_advisory(ADVISORY_PATH)
+    market = fetch_market_context()
+    macro_events = load_upcoming_macro_events(now)
 
     lines = [
         f"Current UTC time: {now.isoformat()}",
         f"Advisory needed for the next {ADVISORY_VALIDITY_HOURS} hours.",
         "",
     ]
+
+    lines.append("## Current market context (BTCUSDT 1h)")
+    if "error" in market:
+        lines.append(f"(market context unavailable: {market['error']})")
+    else:
+        lines.append(f"price: ${market.get('price')} | 24h change: {market.get('change_24h_pct')}%")
+        lines.append(
+            f"regime: {market.get('regime')} "
+            f"(confidence {market.get('regime_confidence')})"
+        )
+        lines.append(
+            f"ADX(14): {market.get('adx_14')} | RSI(14): {market.get('rsi_14')} | "
+            f"ATR %ile: {market.get('atr_percentile')}"
+        )
+        lines.append(
+            f"funding rate: {market.get('funding_rate')} (z={market.get('funding_z')}) | "
+            f"volume z: {market.get('volume_z')} | OI z: {market.get('oi_z')}"
+        )
+    lines.append("")
+
+    lines.append(f"## Upcoming US macro events (next {MACRO_LOOKAHEAD_DAYS}d)")
+    if macro_events:
+        for ev in macro_events:
+            lines.append(
+                f"- {ev.get('date')} {ev.get('time_utc')} UTC {ev.get('type')}: {ev.get('detail')}"
+            )
+    else:
+        lines.append("None scheduled.")
+    lines.append("")
 
     if trades:
         wins = sum(1 for t in trades if t["r_multiple"] > 0)

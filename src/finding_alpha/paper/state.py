@@ -131,6 +131,7 @@ class PaperState:
         pending_entry: Optional[PendingEntry] = None,
         last_processed_bar_ts: Optional[datetime] = None,
         circuit_breaker_active: bool = False,
+        live_plan_ref: Optional[dict] = None,
     ):
         self.equity = equity
         self.peak_equity = peak_equity
@@ -140,6 +141,10 @@ class PaperState:
         self.pending_entry = pending_entry
         self.last_processed_bar_ts = last_processed_bar_ts
         self.circuit_breaker_active = circuit_breaker_active
+        # Opaque serialized PlanState for live-mode execution. The live_execution
+        # module owns the schema; state.py just round-trips the dict. None when
+        # running in sim mode or when no live order is currently in flight.
+        self.live_plan_ref = live_plan_ref
 
     # ── Derived state ──────────────────────────────────────────────────────────
 
@@ -150,8 +155,13 @@ class PaperState:
         return self.pending_entry is not None
 
     def is_slot_free(self) -> bool:
-        """True if we can accept a new signal (no position and no pending entry)."""
-        return self.open_position is None and self.pending_entry is None
+        """True if we can accept a new signal. Blocks on any of: open paper
+        position, pending sim entry, or active live plan (live mode)."""
+        return (
+            self.open_position is None
+            and self.pending_entry is None
+            and self.live_plan_ref is None
+        )
 
     def total_open_risk(self) -> Decimal:
         if self.open_position:
@@ -195,6 +205,7 @@ class PaperState:
                 if self.last_processed_bar_ts else None
             ),
             "circuit_breaker_active": self.circuit_breaker_active,
+            "live_plan_ref": self.live_plan_ref,
         }
 
     @classmethod
@@ -215,6 +226,7 @@ class PaperState:
             pending_entry=pend,
             last_processed_bar_ts=last_bar_ts,
             circuit_breaker_active=d.get("circuit_breaker_active", False),
+            live_plan_ref=d.get("live_plan_ref"),
         )
 
 

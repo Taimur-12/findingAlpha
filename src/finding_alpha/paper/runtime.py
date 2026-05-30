@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
@@ -36,12 +36,38 @@ from pydantic import BaseModel, ConfigDict
 from finding_alpha.contracts.execution import TradeOutcome
 from finding_alpha.contracts.market import CandleEvent, DataQualityEvent
 from finding_alpha.contracts import reason_codes as rc
+from finding_alpha.execution.bybit_client import BybitClient, BybitClientConfig
+from finding_alpha.execution.execution_agent import ExecutionAgent
 from finding_alpha.features.snapshot import build_feature_df, build_snapshot
 from finding_alpha.live.feed import (
     fetch_recent_candles, fetch_recent_funding, fetch_recent_oi,
     is_bar_final, is_data_stale,
 )
 from finding_alpha.matrix.event_log import MatrixEventLog
+from finding_alpha.paper.live_execution import (
+    CLOSE_REASON_STOP,
+    CLOSE_REASON_TARGET,
+    CLOSE_REASON_TIMEOUT,
+    CLOSE_REASON_UNKNOWN,
+    PaperContext,
+    build_plan_from_intent,
+    determine_exit_reason,
+    entry_just_filled,
+    fetch_entry_fill_details,
+    fetch_exit_fill_details,
+    make_live_plan_ref,
+    parse_live_plan_ref,
+    poll_live_legs,
+    query_position_state,
+    rebuild_stop_only_plan,
+    stop_needs_submission,
+    submit_entry_live,
+    submit_runtime_close,
+    submit_stop_live,
+    target_breached,
+    timeout_breached,
+    trade_is_closed,
+)
 from finding_alpha.paper.state import (
     PaperPosition, PaperState, PaperTrade, PendingEntry,
     append_trade_log, load_state, save_state,
@@ -111,6 +137,11 @@ class PaperRuntimeConfig(BaseModel):
 
     # Strategy to run (must be a key in _STRATEGY_REGISTRY)
     strategy_id: str = "prev_day_breakdown_v1"
+
+    # Execution mode. 'sim' uses bar-by-bar fill simulation (Phase 8 default).
+    # 'live' routes approved intents through ExecutionAgent → Bybit (testnet
+    # or mainnet, depending on BYBIT_LIVE_MODE env var read by BybitClientConfig).
+    execution_mode: Literal["sim", "live"] = "sim"
 
     # Paths (relative to project root or absolute)
     paper_dir: Path = Path("paper")
@@ -338,6 +369,239 @@ def _check_position_exit(
     return trade
 
 
+# ── Live-mode execution helpers ───────────────────────────────────────────────
+
+
+def _build_paper_trade_from_live(
+    plan_state,
+    ctx: PaperContext,
+    agent: ExecutionAgent,
+    cfg: PaperRuntimeConfig,
+    now: datetime,
+) -> Optional[PaperTrade]:
+    """Reconstruct a PaperTrade from exchange fill data. Returns None when
+    we cannot determine an exit price (rare — exchange returned no fill rows
+    for either close or stop leg)."""
+    entry_price, entry_qty, entry_fill_ts, entry_fee = fetch_entry_fill_details(
+        agent._client, plan_state,  # noqa: SLF001
+    )
+    exit_price, exit_fill_ts, exit_fee = fetch_exit_fill_details(
+        agent._client, plan_state, ctx,  # noqa: SLF001
+    )
+
+    if entry_price is None or exit_price is None:
+        return None
+
+    qty = entry_qty if entry_qty is not None else ctx.quantity
+    entry_fee = entry_fee if entry_fee is not None else Decimal("0")
+    exit_fee = exit_fee if exit_fee is not None else Decimal("0")
+
+    side_sign = Decimal("-1") if ctx.side == "short" else Decimal("1")
+    gross_pnl = ((exit_price - entry_price) * qty * side_sign).quantize(Decimal("0.01"))
+    total_fees = (entry_fee + exit_fee).quantize(Decimal("0.01"))
+    net_pnl = (gross_pnl - total_fees).quantize(Decimal("0.01"))
+    r_multiple = (
+        (net_pnl / ctx.risk_amount).quantize(Decimal("0.001"))
+        if ctx.risk_amount > 0
+        else Decimal("0")
+    )
+
+    raw_reason = determine_exit_reason(plan_state, ctx)
+    if raw_reason == CLOSE_REASON_UNKNOWN:
+        return None
+    reason_literal = (
+        CLOSE_REASON_TARGET if raw_reason == CLOSE_REASON_TARGET
+        else CLOSE_REASON_TIMEOUT if raw_reason == CLOSE_REASON_TIMEOUT
+        else CLOSE_REASON_STOP
+    )
+
+    entry_ts = ctx.entry_filled_at or entry_fill_ts or ctx.entry_submitted_at
+    exit_ts = exit_fill_ts or now
+
+    return PaperTrade(
+        signal_id=ctx.signal_id,
+        strategy_id=ctx.strategy_id,
+        intent_id=ctx.intent_id,
+        symbol=cfg.symbol,
+        side=ctx.side,
+        entry_ts=entry_ts,
+        exit_ts=exit_ts,
+        entry_price=entry_price,
+        exit_price=exit_price,
+        quantity=qty,
+        gross_pnl=gross_pnl,
+        total_fees=total_fees,
+        net_pnl=net_pnl,
+        initial_risk_amount=ctx.risk_amount,
+        r_multiple=r_multiple,
+        exit_reason=reason_literal,
+    )
+
+
+def _live_tick(
+    state: PaperState,
+    matrix: MatrixEventLog,
+    cfg: PaperRuntimeConfig,
+    agent: ExecutionAgent,
+    now: datetime,
+) -> Optional[PaperTrade]:
+    """Poll exchange truth for the active live plan, drive transitions,
+    return a closed trade if the position has cleared. Safe to call every
+    poll tick — no-op when state.live_plan_ref is None."""
+    if state.live_plan_ref is None:
+        return None
+
+    plan_state, ctx = parse_live_plan_ref(state.live_plan_ref)
+
+    poll_live_legs(agent, plan_state)
+
+    if entry_just_filled(plan_state, ctx):
+        _entry_price, _qty, fill_ts, _fee = fetch_entry_fill_details(
+            agent._client, plan_state,  # noqa: SLF001
+        )
+        ctx.entry_filled_at = fill_ts or now
+        matrix.append(DataQualityEvent(
+            venue=cfg.venue,
+            symbol=cfg.symbol,
+            detected_at=now,
+            reason_code="LIVE_ENTRY_FILLED",
+            detail=f"plan_id={plan_state.plan_id} fill_ts={ctx.entry_filled_at.isoformat()}",
+            affected_timeframes=[cfg.timeframe],
+            resolved=True,
+        ))
+
+    if stop_needs_submission(plan_state):
+        plan = rebuild_stop_only_plan(plan_state, ctx)
+        submit_stop_live(agent, plan_state, plan)
+        matrix.append(DataQualityEvent(
+            venue=cfg.venue,
+            symbol=cfg.symbol,
+            detected_at=now,
+            reason_code="LIVE_STOP_SUBMITTED",
+            detail=f"plan_id={plan_state.plan_id} trigger={ctx.stop_price}",
+            affected_timeframes=[cfg.timeframe],
+            resolved=True,
+        ))
+
+    position_size, _exch_side, mark_price = query_position_state(
+        agent._client, plan_state.symbol,  # noqa: SLF001
+    )
+
+    if (
+        ctx.close_requested_at is None
+        and ctx.entry_filled_at is not None
+        and position_size > 0
+    ):
+        if mark_price is not None and target_breached(plan_state, ctx, mark_price):
+            submit_runtime_close(agent, plan_state, ctx, CLOSE_REASON_TARGET, now)
+            matrix.append(DataQualityEvent(
+                venue=cfg.venue,
+                symbol=cfg.symbol,
+                detected_at=now,
+                reason_code="LIVE_TARGET_CLOSE",
+                detail=f"plan_id={plan_state.plan_id} mark={mark_price} target={ctx.target_price}",
+                affected_timeframes=[cfg.timeframe],
+                resolved=True,
+            ))
+        elif timeout_breached(ctx, now):
+            submit_runtime_close(agent, plan_state, ctx, CLOSE_REASON_TIMEOUT, now)
+            matrix.append(DataQualityEvent(
+                venue=cfg.venue,
+                symbol=cfg.symbol,
+                detected_at=now,
+                reason_code="LIVE_TIMEOUT_CLOSE",
+                detail=f"plan_id={plan_state.plan_id} max_exit={ctx.max_exit_ts.isoformat()}",
+                affected_timeframes=[cfg.timeframe],
+                resolved=True,
+            ))
+
+    if trade_is_closed(ctx, position_size):
+        trade = _build_paper_trade_from_live(plan_state, ctx, agent, cfg, now)
+        if trade is None:
+            # Position is gone but we can't reconstruct cleanly — halt.
+            matrix.append(DataQualityEvent(
+                venue=cfg.venue,
+                symbol=cfg.symbol,
+                detected_at=now,
+                reason_code="LIVE_UNKNOWN_CLOSE",
+                detail=(
+                    f"plan_id={plan_state.plan_id} position size=0 but no fill rows; "
+                    f"manual review required"
+                ),
+                affected_timeframes=[cfg.timeframe],
+            ))
+            state.live_plan_ref = make_live_plan_ref(plan_state, ctx)
+            return None
+        state.apply_trade_close(trade)
+        state.live_plan_ref = None
+        return trade
+
+    state.live_plan_ref = make_live_plan_ref(plan_state, ctx)
+    return None
+
+
+def _submit_live_intent(
+    state: PaperState,
+    agent: ExecutionAgent,
+    signal,
+    intent,
+    matrix: MatrixEventLog,
+    cfg: PaperRuntimeConfig,
+    now: datetime,
+    bar_open_time: datetime,
+    strategy_version: str,
+    feature_version: str,
+) -> None:
+    """Submit an approved intent to the exchange and persist the live plan ref."""
+    target_price = (
+        intent.target_plan[0].price if intent.target_plan else signal.target_prices[0]
+    )
+    max_exit_ts = bar_open_time + timedelta(minutes=cfg.max_hold_minutes)
+
+    plan = build_plan_from_intent(intent, now)
+    plan_state = submit_entry_live(agent, plan, intent)
+
+    ctx = PaperContext(
+        signal_id=signal.signal_id,
+        strategy_id=cfg.strategy_id,
+        strategy_version=strategy_version,
+        feature_version=feature_version,
+        intent_id=intent.intent_id,
+        side=signal.side,
+        entry_price=intent.entry_price,
+        stop_price=intent.stop_price,
+        target_price=target_price,
+        quantity=intent.quantity,
+        notional=intent.notional,
+        risk_amount=intent.risk_amount,
+        max_exit_ts=max_exit_ts,
+        entry_submitted_at=now,
+    )
+    state.live_plan_ref = make_live_plan_ref(plan_state, ctx)
+
+    matrix.append(DataQualityEvent(
+        venue=cfg.venue,
+        symbol=cfg.symbol,
+        detected_at=now,
+        reason_code="LIVE_ENTRY_SUBMITTED",
+        detail=(
+            f"plan_id={plan_state.plan_id} side={signal.side} "
+            f"entry={intent.entry_price} stop={intent.stop_price} "
+            f"target={target_price} qty={intent.quantity}"
+        ),
+        affected_timeframes=[cfg.timeframe],
+        resolved=True,
+    ))
+
+
+def _build_agent_for_mode(cfg: PaperRuntimeConfig) -> Optional[ExecutionAgent]:
+    """Construct an ExecutionAgent for live mode, or return None for sim."""
+    if cfg.execution_mode != "live":
+        return None
+    bybit_cfg = BybitClientConfig.from_env()
+    return ExecutionAgent(BybitClient(bybit_cfg))
+
+
 # ── Advisory gate helper (Phase 9 LLM Advisory Layer) ─────────────────────────
 
 def _load_and_check_advisory(
@@ -411,6 +675,7 @@ def _run_strategy_pipeline(
     cfg: PaperRuntimeConfig,
     now: datetime,
     bar_open_time: datetime,
+    agent: Optional[ExecutionAgent] = None,
 ) -> None:
     """
     Run snapshot → regime → signal → size → risk for the latest final bar.
@@ -471,7 +736,24 @@ def _run_strategy_pipeline(
     if not decision.is_approved:
         return
 
-    # Approved — queue for entry fill on the next bar
+    if cfg.execution_mode == "live":
+        if agent is None:
+            raise RuntimeError("execution_mode=live but no ExecutionAgent provided")
+        _submit_live_intent(
+            state=state,
+            agent=agent,
+            signal=signal,
+            intent=intent,
+            matrix=matrix,
+            cfg=cfg,
+            now=now,
+            bar_open_time=bar_open_time,
+            strategy_version=strategy_version,
+            feature_version=snapshot.feature_version,
+        )
+        return
+
+    # Approved (sim) — queue for entry fill on the next bar
     target_price = intent.target_plan[0].price if intent.target_plan else signal.target_prices[0]
     state.pending_entry = PendingEntry(
         signal_id=signal.signal_id,
@@ -504,6 +786,7 @@ def process_final_bar(
     cfg: PaperRuntimeConfig,
     now: datetime,
     is_catchup: bool = False,
+    agent: Optional[ExecutionAgent] = None,
 ) -> Optional[PaperTrade]:
     """
     Process one confirmed final candle through the full paper pipeline.
@@ -542,14 +825,15 @@ def process_final_bar(
         is_final=True,
     ))
 
-    # 1. Try to fill any pending entry
-    if state.has_pending_entry():
-        _try_fill_entry(state, bar, matrix, cfg, now)
-
-    # 2. Check open position for exit
     closed_trade: Optional[PaperTrade] = None
-    if state.has_open_position():
-        closed_trade = _check_position_exit(state, bar, matrix, cfg, now)
+
+    # In sim mode, the runtime simulates fills + exits each bar. In live mode
+    # those happen on the exchange and are handled by _live_tick in run_once.
+    if cfg.execution_mode == "sim":
+        if state.has_pending_entry():
+            _try_fill_entry(state, bar, matrix, cfg, now)
+        if state.has_open_position():
+            closed_trade = _check_position_exit(state, bar, matrix, cfg, now)
 
     # 3. Run strategy pipeline only on the latest bar (not catch-up)
     if not is_catchup and state.is_slot_free():
@@ -573,7 +857,9 @@ def process_final_bar(
                 affected_timeframes=[cfg.timeframe],
             ))
         else:
-            _run_strategy_pipeline(state, feature_df, bar, matrix, cfg, now, bar_open_time)
+            _run_strategy_pipeline(
+                state, feature_df, bar, matrix, cfg, now, bar_open_time, agent=agent,
+            )
 
     state.last_processed_bar_ts = bar_open_time
     return closed_trade
@@ -594,9 +880,57 @@ def run_once(cfg: PaperRuntimeConfig, now: Optional[datetime] = None) -> dict:
     state = load_state(cfg.state_path)
     matrix = MatrixEventLog(log_path=cfg.matrix_log_path)
 
+    agent = _build_agent_for_mode(cfg)
+    trades_closed: list[PaperTrade] = []
+
+    # Ghost-position guard. In live mode, an exchange position with no local
+    # live_plan_ref means we have an untracked position — possibly survived a
+    # state file deletion or was opened manually. Refuse to do anything until
+    # a human investigates.
+    if cfg.execution_mode == "live" and agent is not None and state.live_plan_ref is None:
+        size, side, _mark = query_position_state(agent._client, cfg.symbol)  # noqa: SLF001
+        if size > 0:
+            matrix.append(DataQualityEvent(
+                venue=cfg.venue,
+                symbol=cfg.symbol,
+                detected_at=now,
+                reason_code="LIVE_GHOST_POSITION",
+                detail=f"exchange size={size} side={side} but local live_plan_ref is None — halt",
+                affected_timeframes=[cfg.timeframe],
+            ))
+            save_state(state, cfg.state_path)
+            return {
+                "status": "ghost_position_halt",
+                "ts": now.isoformat(),
+                "exchange_position_size": str(size),
+                "exchange_position_side": side,
+            }
+
+    # Live tick runs first — both as startup rehydration (when state was
+    # loaded with a live_plan_ref) and as the heartbeat that polls the
+    # exchange between bars. Closing trades append to the same log as sim.
+    if cfg.execution_mode == "live" and agent is not None:
+        try:
+            closed = _live_tick(state, matrix, cfg, agent, now)
+        except Exception as exc:
+            matrix.append(DataQualityEvent(
+                venue=cfg.venue,
+                symbol=cfg.symbol,
+                detected_at=now,
+                reason_code="LIVE_TICK_ERROR",
+                detail=f"{type(exc).__name__}: {exc}",
+                affected_timeframes=[cfg.timeframe],
+            ))
+            save_state(state, cfg.state_path)
+            return {"status": "live_tick_error", "ts": now.isoformat(), "error": str(exc)}
+        if closed is not None:
+            append_trade_log(closed, cfg.trade_log_path)
+            trades_closed.append(closed)
+
     # Fetch rolling data
     raw_candles = fetch_recent_candles(cfg.symbol, cfg.timeframe, n=cfg.lookback_bars + 5)
     if raw_candles.empty:
+        save_state(state, cfg.state_path)
         return {"status": "no_data", "ts": now.isoformat()}
 
     # Filter to truly final bars
@@ -605,6 +939,7 @@ def run_once(cfg: PaperRuntimeConfig, now: Optional[datetime] = None) -> dict:
     )
     final_candles = raw_candles[final_mask].reset_index(drop=True)
     if final_candles.empty:
+        save_state(state, cfg.state_path)
         return {"status": "no_final_bars", "ts": now.isoformat()}
 
     # Determine which bars are new since last run
@@ -618,10 +953,12 @@ def run_once(cfg: PaperRuntimeConfig, now: Optional[datetime] = None) -> dict:
         new_bars = final_candles.tail(1).reset_index(drop=True)
 
     if new_bars.empty:
+        save_state(state, cfg.state_path)
         return {
             "status": "up_to_date",
             "ts": now.isoformat(),
             "last_bar": state.last_processed_bar_ts.isoformat() if state.last_processed_bar_ts else None,
+            "trades_closed": len(trades_closed),
         }
 
     # Fetch supporting data (one network round-trip, reused for all new bars)
@@ -629,7 +966,6 @@ def run_once(cfg: PaperRuntimeConfig, now: Optional[datetime] = None) -> dict:
     oi_df = fetch_recent_oi(cfg.symbol, cfg.timeframe, days=cfg.oi_days)
 
     # Process new bars in chronological order; only the last is "live" (not catch-up)
-    trades_closed: list[PaperTrade] = []
     for i, (_, bar) in enumerate(new_bars.iterrows()):
         is_catchup = i < len(new_bars) - 1
 
@@ -647,6 +983,7 @@ def run_once(cfg: PaperRuntimeConfig, now: Optional[datetime] = None) -> dict:
             cfg=cfg,
             now=now,
             is_catchup=is_catchup,
+            agent=agent,
         )
         if trade is not None:
             append_trade_log(trade, cfg.trade_log_path)
