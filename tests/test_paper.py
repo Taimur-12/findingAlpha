@@ -21,6 +21,7 @@ import pytest
 
 from finding_alpha.contracts.market import DataQualityEvent
 from finding_alpha.contracts.execution import TradeOutcome
+from finding_alpha.contracts.signals import ResearchState
 from finding_alpha.live.feed import is_bar_final, is_data_stale
 from finding_alpha.matrix.event_log import MatrixEventLog
 from finding_alpha.paper.state import (
@@ -28,8 +29,10 @@ from finding_alpha.paper.state import (
     load_state, save_state,
 )
 from finding_alpha.paper.runtime import (
-    PaperRuntimeConfig, _check_position_exit, _try_fill_entry,
+    PaperRuntimeConfig, _check_position_exit, _load_and_check_advisory,
+    _try_fill_entry,
 )
+from finding_alpha.research.advisory import save_advisory
 
 _UTC = timezone.utc
 
@@ -395,3 +398,114 @@ def test_paper_state_round_trips_through_json(tmp_path):
     assert loaded.pending_entry.entry_price == Decimal("67000")
     assert loaded.last_processed_bar_ts == datetime(2026, 5, 27, 13, 0, 0, tzinfo=_UTC)
     assert loaded.open_position is None
+
+
+# ── Advisory gate tests (Phase 9) ──────────────────────────────────────────────
+
+def _cfg_with_advisory(tmp_path: Path) -> PaperRuntimeConfig:
+    return PaperRuntimeConfig(
+        paper_dir=tmp_path,
+        advisory_path=tmp_path / "advisory.json",
+        strategy_id="prev_day_breakdown_v1",
+    )
+
+
+def _build_advisory(
+    *,
+    confidence_multiplier: Decimal = Decimal("1.0"),
+    trade_policy: str = "normal",
+    allowed_strategies: list[str] | None = None,
+) -> ResearchState:
+    now = _now()
+    return ResearchState(
+        as_of=now,
+        expires_at=now + timedelta(hours=24),
+        assets=["BTC"],
+        event_type="none",
+        severity=Decimal("0"),
+        directional_bias=Decimal("0"),
+        confidence_multiplier=confidence_multiplier,
+        trade_policy=trade_policy,
+        model_id="claude-sonnet-4-6",
+        prompt_version="1.0",
+        allowed_strategies=allowed_strategies or [],
+    )
+
+
+def test_advisory_gate_proceeds_with_no_file(tmp_path):
+    """Missing advisory file → permissive default → proceed with full risk_pct."""
+    cfg = _cfg_with_advisory(tmp_path)
+    matrix = MatrixEventLog()
+    proceed, eff_risk = _load_and_check_advisory(cfg, matrix, _now())
+    assert proceed is True
+    assert eff_risk == cfg.risk_pct
+    # No matrix events emitted on missing file (default state, no spam).
+    assert all(getattr(e, "reason_code", "") != "ADVISORY_INVALID" for e in matrix.events)
+
+
+def test_advisory_gate_blocks_on_hard_block(tmp_path):
+    cfg = _cfg_with_advisory(tmp_path)
+    save_advisory(_build_advisory(trade_policy="block_new_entries"), cfg.advisory_path)
+    matrix = MatrixEventLog()
+    proceed, _ = _load_and_check_advisory(cfg, matrix, _now())
+    assert proceed is False
+    block_events = [e for e in matrix.events
+                    if getattr(e, "reason_code", "") == "ADVISORY_HARD_BLOCK"]
+    assert len(block_events) == 1
+
+
+def test_advisory_gate_blocks_when_strategy_not_allowed(tmp_path):
+    cfg = _cfg_with_advisory(tmp_path)  # strategy_id = prev_day_breakdown_v1
+    save_advisory(_build_advisory(allowed_strategies=["short_composite_v1"]),
+                  cfg.advisory_path)
+    matrix = MatrixEventLog()
+    proceed, _ = _load_and_check_advisory(cfg, matrix, _now())
+    assert proceed is False
+    skip_events = [e for e in matrix.events
+                   if getattr(e, "reason_code", "") == "ADVISORY_STRATEGY_NOT_ALLOWED"]
+    assert len(skip_events) == 1
+
+
+def test_advisory_gate_scales_risk_when_scalar_below_one(tmp_path):
+    cfg = _cfg_with_advisory(tmp_path)
+    save_advisory(_build_advisory(confidence_multiplier=Decimal("0.5")),
+                  cfg.advisory_path)
+    matrix = MatrixEventLog()
+    proceed, eff_risk = _load_and_check_advisory(cfg, matrix, _now())
+    assert proceed is True
+    expected = (cfg.risk_pct * Decimal("0.5")).quantize(Decimal("0.0000001"))
+    assert eff_risk == expected
+
+
+def test_advisory_gate_logs_invalid_event_on_malformed_file(tmp_path):
+    cfg = _cfg_with_advisory(tmp_path)
+    cfg.advisory_path.write_text("{not valid json")
+    matrix = MatrixEventLog()
+    proceed, eff_risk = _load_and_check_advisory(cfg, matrix, _now())
+    # Falls back to default → proceeds normally.
+    assert proceed is True
+    assert eff_risk == cfg.risk_pct
+    invalid_events = [e for e in matrix.events
+                      if getattr(e, "reason_code", "") == "ADVISORY_INVALID"]
+    assert len(invalid_events) == 1
+
+
+def test_advisory_gate_logs_invalid_event_on_expired_file(tmp_path):
+    cfg = _cfg_with_advisory(tmp_path)
+    # Build an advisory that expires in the past.
+    past = _now() - timedelta(hours=48)
+    expired = ResearchState(
+        as_of=past,
+        expires_at=past + timedelta(hours=1),
+        assets=["BTC"], event_type="none",
+        severity=Decimal("0"), directional_bias=Decimal("0"),
+        confidence_multiplier=Decimal("1.0"), trade_policy="normal",
+        model_id="m", prompt_version="1.0",
+    )
+    save_advisory(expired, cfg.advisory_path)
+    matrix = MatrixEventLog()
+    proceed, _ = _load_and_check_advisory(cfg, matrix, _now())
+    assert proceed is True  # falls back to default
+    invalid_events = [e for e in matrix.events
+                      if getattr(e, "reason_code", "") == "ADVISORY_INVALID"]
+    assert len(invalid_events) == 1

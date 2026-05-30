@@ -198,6 +198,43 @@ def test_research_hard_block_detection():
     assert r.is_hard_block is True
 
 
+def test_research_allowed_strategies_default_empty():
+    """allowed_strategies defaults to empty list (no constraint)."""
+    now = utc_now()
+    r = ResearchState(
+        as_of=now,
+        expires_at=now + timedelta(minutes=15),
+        assets=["BTC"],
+        event_type="none",
+        severity=Decimal("0"),
+        directional_bias=Decimal("0"),
+        confidence_multiplier=Decimal("1.0"),
+        trade_policy="normal",
+        model_id="claude-sonnet-4-6",
+        prompt_version="1.0",
+    )
+    assert r.allowed_strategies == []
+
+
+def test_research_allowed_strategies_explicit_list():
+    """allowed_strategies accepts and preserves an explicit allowlist."""
+    now = utc_now()
+    r = ResearchState(
+        as_of=now,
+        expires_at=now + timedelta(minutes=15),
+        assets=["BTC"],
+        event_type="none",
+        severity=Decimal("0"),
+        directional_bias=Decimal("0"),
+        confidence_multiplier=Decimal("0.5"),
+        trade_policy="reduce_size",
+        model_id="claude-sonnet-4-6",
+        prompt_version="1.0",
+        allowed_strategies=["prev_day_breakdown_v1"],
+    )
+    assert r.allowed_strategies == ["prev_day_breakdown_v1"]
+
+
 # ── ExecutionReport ───────────────────────────────────────────────────────────
 
 def test_execution_report_valid():

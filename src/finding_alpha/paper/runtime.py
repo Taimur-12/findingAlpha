@@ -48,6 +48,10 @@ from finding_alpha.paper.state import (
 )
 from finding_alpha.portfolio.agent import PortfolioConfig, size_intent
 from finding_alpha.regime.classifier import classify_regime
+from finding_alpha.research.advisory import (
+    default_advisory, effective_risk_scalar, is_hard_block,
+    is_strategy_allowed, load_advisory,
+)
 from finding_alpha.risk.agent import RiskConfig, evaluate as risk_evaluate
 from finding_alpha.risk.state import OpenPosition, RiskState
 from finding_alpha.strategies.prev_day_breakdown_v1 import (
@@ -110,6 +114,7 @@ class PaperRuntimeConfig(BaseModel):
 
     # Paths (relative to project root or absolute)
     paper_dir: Path = Path("paper")
+    advisory_path: Path = Path("advisory.json")
 
     @property
     def state_path(self) -> Path:
@@ -333,6 +338,69 @@ def _check_position_exit(
     return trade
 
 
+# ── Advisory gate helper (Phase 9 LLM Advisory Layer) ─────────────────────────
+
+def _load_and_check_advisory(
+    cfg: PaperRuntimeConfig,
+    matrix: MatrixEventLog,
+    now: datetime,
+) -> tuple[bool, Decimal]:
+    """
+    Read paper/advisory.json (or wherever cfg.advisory_path points). If file
+    is missing/expired/malformed, fall back to permissive defaults. Apply the
+    three gates: hard_block, strategy_allowlist, risk_scalar.
+
+    Returns (should_proceed, effective_risk_pct). Logs blocks and invalid-file
+    events to the Matrix. Never raises — a broken advisory file must not stop
+    the runtime; it falls back to trading-as-normal.
+    """
+    advisory_file_present = cfg.advisory_path.exists()
+    advisory = load_advisory(cfg.advisory_path, now=now)
+    if advisory is None:
+        if advisory_file_present:
+            matrix.append(DataQualityEvent(
+                venue=cfg.venue,
+                symbol=cfg.symbol,
+                detected_at=now,
+                reason_code="ADVISORY_INVALID",
+                detail=f"advisory file present but expired or unparseable: {cfg.advisory_path}",
+                affected_timeframes=[cfg.timeframe],
+            ))
+        advisory = default_advisory(now)
+
+    if is_hard_block(advisory):
+        matrix.append(DataQualityEvent(
+            venue=cfg.venue,
+            symbol=cfg.symbol,
+            detected_at=now,
+            reason_code="ADVISORY_HARD_BLOCK",
+            detail=(
+                f"trade_policy={advisory.trade_policy} "
+                f"reason_codes={advisory.reason_codes}"
+            ),
+            affected_timeframes=[cfg.timeframe],
+        ))
+        return False, cfg.risk_pct
+
+    if not is_strategy_allowed(advisory, cfg.strategy_id):
+        matrix.append(DataQualityEvent(
+            venue=cfg.venue,
+            symbol=cfg.symbol,
+            detected_at=now,
+            reason_code="ADVISORY_STRATEGY_NOT_ALLOWED",
+            detail=(
+                f"strategy_id={cfg.strategy_id} "
+                f"allowed_strategies={advisory.allowed_strategies}"
+            ),
+            affected_timeframes=[cfg.timeframe],
+        ))
+        return False, cfg.risk_pct
+
+    scalar = effective_risk_scalar(advisory)
+    effective_risk_pct = (cfg.risk_pct * scalar).quantize(Decimal("0.0000001"))
+    return True, effective_risk_pct
+
+
 # ── Strategy pipeline ──────────────────────────────────────────────────────────
 
 def _run_strategy_pipeline(
@@ -348,6 +416,10 @@ def _run_strategy_pipeline(
     Run snapshot → regime → signal → size → risk for the latest final bar.
     If approved, sets state.pending_entry. All decisions logged to Matrix.
     """
+    should_proceed, effective_risk_pct = _load_and_check_advisory(cfg, matrix, now)
+    if not should_proceed:
+        return
+
     strategy_fn, strategy_version = _STRATEGY_REGISTRY[cfg.strategy_id]
 
     snapshot = build_snapshot(feature_df, cfg.venue, cfg.symbol, cfg.timeframe)
@@ -362,7 +434,7 @@ def _run_strategy_pipeline(
     matrix.append(signal)
 
     port_cfg = PortfolioConfig(
-        risk_pct=cfg.risk_pct,
+        risk_pct=effective_risk_pct,
         max_leverage=cfg.max_leverage,
         min_notional_usdt=cfg.min_notional,
         qty_precision=cfg.qty_precision,

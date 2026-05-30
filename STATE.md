@@ -1,9 +1,27 @@
 # Finding Alpha — Project State
 
-Last updated: 2026-05-28
+Last updated: 2026-05-30
 
-## Current Phase: Phase 8 — Live-Data Paper Runtime (paper-only probation, infrastructure BUILT)
-## Parallel: Phase 7C COMPLETE — short_composite_v1 passes adjusted gate
+## Current Phase: ACCELERATED BUILD — Phases 9, 10, 11 built in one pass
+
+Phase 8 runtime is complete and validated via historical replay (2026-05-29 sim: composite produced 12 trades, +0.106 avg R, no crashes, no unprotected positions). Live observation runs in the background via cron — it no longer blocks downstream phases. Phases 9, 10, and 11 are being built immediately so the full trading stack exists before any real money or multi-week observation gates.
+
+Strategies frozen for this build: `prev_day_breakdown_v1`, `short_composite_v1`. No tuning during the accelerated build.
+
+## Long-Term Strategic Direction (added 2026-05-30)
+
+This project will not become a top-tier quant fund — that competes on data spend ($50M+/yr), latency (microseconds), and PhD count (100+). We compete in markets/timeframes where those moats don't apply: retail-sized crypto perpetuals, 1h-and-slower bars, public-data strategies. The right comparable is a disciplined 1-2 person systematic prop trader who adopts hedge-fund-grade discipline and infrastructure mental models without the spend.
+
+**Tiered roadmap for data, ML, and LLM (each tier earns the right to the next):**
+
+| Tier | What | When |
+|---|---|---|
+| Data | Parquet + JSONL (current) → DuckDB on Parquet for queryable analytics | Phase 11.5 |
+| ML | Cold-path only — trade outcome classifier, strategy decay detector, regime ML second-opinion | Phase 12.5 |
+| LLM agents | Daily advisor (Phase 9) → trade post-mortem + strategy hypothesis + doc tagger | Phase 13.5 |
+| RL | Skipped indefinitely — sample size insufficient, reward hacking common, big-fund literature mostly negative | N/A |
+
+ML and LLMs stay out of the hot path. Hot path (signal → sizing → risk → execution) remains fully deterministic. ML/LLM live in research and risk-advisory roles only.
 
 ## Phase Status
 
@@ -17,13 +35,16 @@ Last updated: 2026-05-28
 | 5 | Strategy Research + Fast Rejection | COMPLETE |
 | 6 | Portfolio, Risk, Execution Simulation | COMPLETE |
 | 7 | Authoritative Event-Driven Validation | COMPLETE — short_composite_v1 promoted |
-| 8 | Live-Data Paper Runtime | ACTIVE: RUNTIME BUILT, BEGIN OBSERVATION |
-| 9 | Research Agent Shadow Mode | BLOCKED |
-| 10 | Private API + Testnet Execution | BLOCKED |
-| 11 | Micro-Live Trading | BLOCKED |
-| 12 | Live v1 | BLOCKED |
-| 13 | Controlled Expansion | BLOCKED |
-| 14 | Advanced Research Backlog | BLOCKED |
+| 8 | Live-Data Paper Runtime | RUNTIME COMPLETE — sim validated, cron observation running in background |
+| 9 | LLM Advisory Layer | ACTIVE BUILD (accelerated — historical-replay validation, no multi-week shadow wait) |
+| 10 | Private API + Bybit Testnet Execution | ACTIVE BUILD (testnet keys, real exchange behavior, no real capital) |
+| 11 | Micro-Live Trading | CODE BUILD ACTIVE — capital deployment deferred until accelerated build complete |
+| 11.5 | Data Infrastructure Upgrade (DuckDB + counterfactual log) | PLANNED — after micro-live capital deployed |
+| 12 | Live v1 | BLOCKED until micro-live capital deployment proves out |
+| 12.5 | Cold-path ML (trade outcome classifier, decay detector, regime ML second-opinion) | PLANNED — after live v1 stable |
+| 13 | Controlled Expansion (ETHUSDT, second strategy) | BLOCKED |
+| 13.5 | Cold-path LLM agents (trade post-mortem, strategy hypothesis, document tagger) | PLANNED — after expansion |
+| 14 | Advanced Research Backlog | BLOCKED (RL stays blocked indefinitely) |
 
 ---
 
@@ -465,49 +486,46 @@ Data updated: 1h candles extended to 1095 days (2023-05-28 to 2026-05-27, 26,281
 
 ## Resume Directive: What To Do Next
 
-**Current state (2026-05-28):** Phase 7C complete. Phase 8 runtime built and ready. Two strategies promoted to paper observation.
+**Current state (2026-05-29):** Accelerated build path active. Phases 9, 10, and 11 are being built in one pass before any multi-week observation gate. Paper observation runs in background via cron — it does not block downstream work.
 
-### Immediate: run the paper runtimes
+### Accelerated build order (current sprint)
 
-Both runners use only Bybit public REST — no private API keys needed.
+1. **Phase 9 — LLM Advisory Layer**
+   - `src/finding_alpha/research/advisory.py` — schema, loader, Claude API caller
+   - Runtime gate in `paper/runtime.py` — reads `paper/advisory.json` before signal evaluation
+   - Default `risk_scalar=1.0` when no advisory present (LLM is upside-only)
+   - Validation: replay historical data through sim runner with advisories injected; confirm gates fire correctly
+   - **Defer:** crisis scanner, CryptoPanic polling, OI/liquidation thresholds → Phase 11
+
+2. **Phase 10 — Bybit Private API + Testnet**
+   - `src/finding_alpha/execution/bybit_client.py` — auth, order placement, cancel, query, position reconcile
+   - Idempotent client order IDs
+   - Order state machine (planned → submitted → ack → open → filled/canceled)
+   - Validation: end-to-end smoke test on testnet — place order, fill, close, verify accounting matches paper logic
+
+3. **Phase 11 — Micro-Live Code (capital deferred)**
+   - Same code as Phase 10, with `BYBIT_LIVE_MODE` env flag flipping testnet → mainnet
+   - Hard-coded $5–50 position cap until manually unlocked
+   - Pre-flight check (eligibility, isolated margin, precision, feeds fresh)
+   - **Capital deployment deferred** until accelerated build complete and human review
+
+### Background work (runs in parallel, does not block)
 
 ```bash
-# Process new bars and check for signals/exits (run periodically, e.g. hourly):
-python notebooks/phase8_paper_runner.py --once            # prev_day_breakdown_v1
-python notebooks/phase8_short_composite_runner.py --once  # short_composite_v1
-
-# Print paper account status without processing:
-python notebooks/phase8_paper_runner.py --status
-python notebooks/phase8_short_composite_runner.py --status
-
-# Continuous polling (60s interval):
-python notebooks/phase8_paper_runner.py --poll 60
+# Cron entries already installed — runs hourly:
+# 5 * * * *  → phase8_paper_runner.py --once
+# 6 * * * *  → phase8_short_composite_runner.py --once
 ```
 
 Paper state files:
 - `paper/state.json` and `paper/trades.jsonl` — breakdown strategy
 - `paper/composite/state.json` and `paper/composite/trades.jsonl` — composite strategy
 
-### Phase 8 observation gate (must pass before Phase 9)
+### Blocked until accelerated build complete
 
-- [ ] 6–8 weeks minimum live-data observation (started 2026-05-28)
-- [ ] Positive or non-broken paper expectancy on each strategy
-- [ ] Runtime runs unattended without manual fixes
-- [ ] No unprotected paper position occurred
-- [ ] Paper behavior roughly matches backtest assumptions
-
-Monitor both strategies independently. Do NOT combine into one portfolio until the 8-week observation completes.
-
-### After Phase 8 gate passes → Phase 9
-
-Phase 9 = Research Agent shadow mode. Both `prev_day_breakdown_v1` and `short_composite_v1` are candidates. Decide which (or both) to advance based on paper observation results.
-
-### Blocked until Phase 8 gate passes
-
-- Phase 9 Research Agent
-- Phase 10 private API / testnet execution
-- Phase 11 micro-live
-- Any live capital
+- Real capital (Phase 12 live v1)
+- Strategy tuning or new strategies
+- Phase 13 expansion (ETHUSDT, second strategy)
 
 ### Refreshing historical data
 

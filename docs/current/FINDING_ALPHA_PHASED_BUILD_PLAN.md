@@ -1,6 +1,6 @@
 # Finding Alpha Phased Build Plan
 
-Last reviewed: 2026-05-10
+Last reviewed: 2026-05-29 (accelerated build path added)
 
 This file converts `FINDING_ALPHA_SOURCE_OF_TRUTH.md` and `agentic_quant_trading_project_deep_dive.md` into phase-by-phase build instructions. It is not a calendar timeline. Use it to create a timeline only after the phase gates are understood.
 
@@ -62,6 +62,39 @@ Phase 12: Live v1
 Phase 13: Controlled expansion
 Phase 14: Advanced research backlog
 ```
+
+### 0.4 Accelerated Build Path (added 2026-05-29)
+
+The original phase plan is a wall-clock-gated rollout: build phase N, observe for weeks, then build phase N+1. That cadence makes sense for an institutional team. For a solo build, it makes sense to **split each gate into two parts**:
+
+1. **Code-correctness work** — anything that can be validated by historical replay, unit tests, or testnet round-trips. Build this immediately, in one pass.
+2. **Wall-clock validation** — anything that physically requires real elapsed time (multi-week stability, real-money fill quality, funding accumulation). Run this in the background after the code is complete.
+
+Under the accelerated path the **gates do not disappear** — they are reordered. No real capital is deployed until the original Phase 11/12 evidence has accumulated. What changes is that *the code for Phases 9–11 is written before the Phase 8 multi-week observation finishes*, validated by:
+
+- Historical replay through the existing simulation runner (`notebooks/phase8_simulation_runner.py`)
+- Bybit testnet (free API, real exchange behavior, no real capital)
+- Unit and integration tests against fixed datasets
+
+**What is built immediately (accelerated):**
+
+- Phase 9 — LLM advisory layer, validated by replaying historical bars with advisories injected
+- Phase 10 — Bybit private API + testnet integration, validated by end-to-end testnet round-trip
+- Phase 11 — micro-live code path, env-flag gated, hard-capped position size; **no capital flows yet**
+
+**What still requires wall-clock time (run in background, not blocking):**
+
+- Phase 8 multi-week unattended paper observation (already running via cron)
+- Phase 11 micro-live capital deployment — only after the rest of the accelerated build is reviewed and the original Phase 11 pre-flight checks pass
+- Phase 12 live v1 — same gate as before, unchanged
+
+**Doctrine for the accelerated path:**
+
+- No new strategies during the build. Frozen: `prev_day_breakdown_v1`, `short_composite_v1`.
+- No risk-policy changes during the build. The Risk Agent remains the final veto.
+- LLM advisory is upside-only. Default `risk_scalar=1.0` when advisory missing. LLM cannot raise risk above strategy/portfolio config; it can only reduce or block.
+- Bybit testnet keys are kept in `.env` (gitignored). Live keys are not added until micro-live capital deployment is explicitly approved.
+- The original exit gates for Phase 11 and Phase 12 still apply. The accelerated path only changes *when the code is written*, not *when capital is risked*.
 
 ## Phase 0: Scope And Venue Eligibility Gate
 
@@ -1072,6 +1105,66 @@ Move to Phase 12 only when:
 - Live fills are materially worse than backtest/paper assumptions.
 - You manually rescued trades because the system state was wrong.
 
+## Phase 11.5: Data Infrastructure Upgrade
+
+### Objective
+
+Replace the current JSONL + Parquet sprawl with a single queryable analytical store so that every type of data the system touches can be inspected, joined, and reasoned about with SQL. This is the project's "Palantir-equivalent step" at retail scale — without buying Palantir.
+
+### Why now
+
+Phase 8 paper observation and Phase 11 micro-live both produce structured event logs. By the time micro-live has ~50 trades, JSONL scans become painful for analytical questions like "win rate by regime by month by funding bucket." DuckDB on top of Parquet solves this without ops cost.
+
+### Required Work
+
+1. Migrate live event log to a structured store.
+   - Continue writing JSONL append-only for hot-path determinism.
+   - Add a periodic compaction job that rolls JSONL into Parquet per day/strategy.
+   - Expose all Parquet files as DuckDB views.
+
+2. Build the eight-table analytical schema.
+   - `trades` — every closed trade across backtest + paper + live + walk-forward, enriched with regime, microstructure z-scores, news tags, macro tags at entry, outcome R, exit reason, fee, slippage, funding cost.
+   - `advisories` — every LLM advisory ever generated, with prompt_version, model_id, raw response, downstream gate decisions.
+   - `matrix_events` — full compacted event log, queryable by event type and time.
+   - `walk_forward` — every window result from every backtest grid.
+   - `snapshots` — hourly market snapshot (regime, full feature set, microstructure z-scores) even when no trade fires.
+   - `counterfactuals` — every gated signal: what was the signal, what would have happened if it executed.
+   - `slippage` — per-order: expected fill vs actual fill, latency, fee, slippage in bps.
+   - `versions` — model and prompt version registry with hashes.
+
+3. Add counterfactual logging at every gate.
+   - Risk Agent rejection → log signal + would-have-happened path.
+   - LLM advisory block → log signal + would-have-happened path.
+   - Regime filter rejection → log signal + would-have-happened path.
+
+4. Add SQL views and analytical notebooks.
+   - View: `v_trade_performance_by_regime`
+   - View: `v_strategy_decay` (rolling expectancy with anomaly flags)
+   - View: `v_advisory_value` (advisory blocks correlated with would-have-been outcomes)
+   - Notebook: `notebooks/research/duckdb_workbench.ipynb` for ad-hoc queries.
+
+### Deliverables
+
+- `data/duckdb/analytics.db` — single source of truth for analysis
+- Compaction job (cron, daily)
+- Counterfactual logging wired into all three gates
+- Eight Parquet tables + their DuckDB view definitions
+- Research workbench notebook
+
+### Exit Gate
+
+Move to Phase 12.5 only when:
+
+- All historical paper trades are queryable in DuckDB.
+- Counterfactual log has at least 4 weeks of accumulated gate decisions.
+- At least three analytical questions can be answered via SQL in under 30 seconds each.
+
+### Do Not Move Forward If
+
+- The compaction job loses or duplicates events.
+- DuckDB views diverge from the underlying JSONL.
+- Counterfactual log cannot be replayed deterministically.
+
 ## Phase 12: Live v1
 
 ### Objective
@@ -1157,6 +1250,67 @@ Move to Phase 13 only when:
 - You are tempted to increase risk to recover losses.
 - Operational incidents are still common.
 
+## Phase 12.5: Cold-Path ML
+
+### Objective
+
+Add ML where it earns its place — research, analysis, decision support — without putting it in the hot path. Hot path stays fully deterministic.
+
+### Why now
+
+By Phase 12 there should be 100+ live trades and 1000+ paper trades enriched in DuckDB. That's the minimum sample to start training useful supervised models on trade outcomes.
+
+### Required Work
+
+1. Train trade outcome classifier.
+   - Input: feature snapshot at entry.
+   - Output: predicted R-multiple distribution.
+   - Model: LightGBM or XGBoost (not neural nets — sample too small).
+   - Use: flag signals firing in rare feature configurations for manual review. Does not block.
+
+2. Build strategy decay detector.
+   - Rolling expectancy time-series with anomaly detection.
+   - Triggers manual review when expectancy drifts beyond historical band.
+   - Does not auto-pause strategies; alerts only.
+
+3. Build ML regime classifier as a second opinion.
+   - Compare its output to the rules-based classifier each bar.
+   - Disagreements logged for review.
+   - The rules-based classifier remains authoritative for the hot path.
+
+4. Add SHAP-based feature importance reports.
+   - Monthly report on which features predict trade outcomes.
+   - Guides where to look for new strategies (Phase 13+).
+
+### Hot-path constraints
+
+- ML output NEVER directly drives a trade decision.
+- ML output NEVER overrides the Risk Agent.
+- ML output NEVER changes stop or target placement.
+- All hot-path logic stays in `src/finding_alpha/strategies/` and `src/finding_alpha/risk/`.
+
+### Deliverables
+
+- `src/finding_alpha/ml/outcome_classifier.py`
+- `src/finding_alpha/ml/decay_detector.py`
+- `src/finding_alpha/ml/regime_ml.py`
+- Monthly feature importance report (auto-generated)
+- Validation: hot-path tests pass unchanged; ML modules have their own test suite.
+
+### Exit Gate
+
+Move to Phase 13 only when:
+
+- All ML modules have ≥80% test coverage.
+- Outcome classifier has out-of-sample R² > 0 on held-out trades.
+- ML output appears in research notebooks but never in live decisions.
+
+### Do Not Move Forward If
+
+- Any ML output influences a hot-path decision.
+- Model retraining is not reproducible.
+- Out-of-sample performance is worse than the deterministic baseline.
+
 ## Phase 13: Controlled Expansion
 
 ### Objective
@@ -1221,6 +1375,70 @@ Move beyond Phase 13 only when:
 - Expansion is motivated by boredom or impatience.
 - You have not saturated the current validated setup.
 - New features make failures harder to diagnose.
+
+## Phase 13.5: Cold-Path LLM Agents
+
+### Objective
+
+Expand the LLM beyond the daily risk advisor (Phase 9) into a multi-agent research assistant. All agents are cold-path. None can place orders, change parameters, or override risk.
+
+### Why now
+
+By Phase 13 there is enough live data and enough strategy/instrument breadth that periodic LLM analysis can identify patterns a human reviewer would miss in raw logs. The daily advisor (Phase 9) has been running long enough to know its quirks.
+
+### Required Work
+
+1. Trade post-mortem agent.
+   - Cadence: weekly.
+   - Input: last 7 days of trades + matrix events + advisory log.
+   - Output: structured analysis JSON — what worked, what didn't, any patterns flagged for review.
+   - Writes to `data/memory/post_mortem/YYYY-MM-DD.json`.
+
+2. Strategy hypothesis agent.
+   - Cadence: quarterly.
+   - Input: enriched trade ledger + feature snapshots + walk-forward results.
+   - Output: list of feature combinations the LLM thinks may have predictive power.
+   - Human reviews; promising hypotheses go through full deterministic backtest validation.
+
+3. Document tagger.
+   - Cadence: on news feed item arrival.
+   - Input: news article URL or exchange announcement.
+   - Output: structured tag (category, severity, affected instruments, time window).
+   - Powers Phase 11+ news integration described in `phase9_llm_advisory_final_vision.md`.
+
+4. Wire agents into the audit log.
+   - Every agent run logs prompt, model_id, input hash, output, latency, cost.
+   - Reviewable in DuckDB via the `advisories` table extended with `agent_type`.
+
+### Hot-path constraints
+
+- No LLM agent has order-placement authority.
+- No LLM agent can change strategy parameters.
+- No LLM agent can override Risk Agent.
+- All agent outputs are written to disk; the hot path reads only the daily advisor's JSON (still bounded).
+
+### Deliverables
+
+- `src/finding_alpha/research/post_mortem.py`
+- `src/finding_alpha/research/hypothesis.py`
+- `src/finding_alpha/research/document_tagger.py`
+- Weekly post-mortem report
+- Quarterly hypothesis report
+- News tag archive populated from real feed
+
+### Exit Gate
+
+Move to Phase 14 only when:
+
+- All agents have been running for at least one full quarter.
+- At least one strategy hypothesis has been validated through deterministic backtest.
+- Cost per agent run is bounded and documented.
+
+### Do Not Move Forward If
+
+- Any agent has been given execution authority.
+- Agent outputs are unreviewed.
+- Cost grows unbounded.
 
 ## Phase 14: Advanced Research Backlog
 

@@ -106,6 +106,11 @@ class ResearchState(BaseModel):
     model_id: str
     prompt_version: str
 
+    # Strategy allowlist gate (Phase 9 LLM Advisory layer).
+    # Empty list = no constraint; runtime treats all known strategies as allowed.
+    # Non-empty list = only the listed strategy_ids may take entries while this state is valid.
+    allowed_strategies: list[str] = Field(default_factory=list)
+
     @model_validator(mode="after")
     def validate_research(self) -> ResearchState:
         for field_name in ("as_of", "expires_at"):
