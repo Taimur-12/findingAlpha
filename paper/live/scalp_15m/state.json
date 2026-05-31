@@ -2,10 +2,51 @@
   "equity": "10000",
   "peak_equity": "10000",
   "daily_start_equity": "10000",
-  "daily_date": null,
+  "daily_date": "2026-05-31",
   "open_position": null,
   "pending_entry": null,
-  "last_processed_bar_ts": null,
+  "last_processed_bar_ts": "2026-05-31T17:30:00+00:00",
   "circuit_breaker_active": false,
-  "live_plan_ref": null
+  "live_plan_ref": {
+    "schema_version": "1.0",
+    "plan_state": {
+      "plan_id": "04c0ecab-4553-49d6-9f90-305cd5349ee2",
+      "intent_id": "2dcc8c49-9e6e-4a51-85c3-b79100f00d3f",
+      "symbol": "BTCUSDT",
+      "side": "short",
+      "legs": {
+        "entry": {
+          "link_id": "04c0ecab-4553-49d6-9f90-305cd5-entry",
+          "state": "acknowledged",
+          "venue_order_id": "960fa794-49bb-44da-aabb-9eeeb36ad2e8",
+          "side": "Sell",
+          "order_type": "Limit",
+          "qty": "0.277",
+          "price": "73683.90",
+          "trigger_price": null,
+          "reduce_only": false
+        }
+      }
+    },
+    "paper_context": {
+      "signal_id": "5435166d-d56e-4997-b786-3b6e0dc625bd",
+      "strategy_id": "ema_scalp_15m_v1",
+      "strategy_version": "1.2",
+      "feature_version": "1.0",
+      "intent_id": "2dcc8c49-9e6e-4a51-85c3-b79100f00d3f",
+      "side": "short",
+      "entry_price": "73683.90",
+      "stop_price": "73773.92",
+      "target_price": "73503.85",
+      "quantity": "0.277",
+      "notional": "20410.44",
+      "risk_amount": "24.94",
+      "max_exit_ts": "2026-05-31T19:30:00+00:00",
+      "entry_submitted_at": "2026-05-31T17:46:03.283032+00:00",
+      "entry_filled_at": null,
+      "close_requested_at": null,
+      "close_reason": null,
+      "close_link_id": null
+    }
+  }
 }

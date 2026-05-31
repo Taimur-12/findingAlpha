@@ -489,17 +489,42 @@ def _live_tick(
         ))
 
     if stop_needs_submission(plan_state):
-        plan = rebuild_stop_only_plan(plan_state, ctx)
-        submit_stop_live(agent, plan_state, plan)
-        matrix.append(DataQualityEvent(
-            venue=cfg.venue,
-            symbol=cfg.symbol,
-            detected_at=now,
-            reason_code="LIVE_STOP_SUBMITTED",
-            detail=f"plan_id={plan_state.plan_id} trigger={ctx.stop_price}",
-            affected_timeframes=[cfg.timeframe],
-            resolved=True,
-        ))
+        _check_size, _check_side, _check_mark = query_position_state(
+            agent._client, plan_state.symbol,  # noqa: SLF001
+        )
+        stop_already_breached = (
+            _check_mark is not None
+            and (
+                (ctx.side == "short" and _check_mark >= ctx.stop_price)
+                or (ctx.side == "long" and _check_mark <= ctx.stop_price)
+            )
+        )
+        if stop_already_breached:
+            submit_runtime_close(agent, plan_state, ctx, CLOSE_REASON_STOP, now)
+            matrix.append(DataQualityEvent(
+                venue=cfg.venue,
+                symbol=cfg.symbol,
+                detected_at=now,
+                reason_code="LIVE_STOP_BREACHED_CLOSE",
+                detail=(
+                    f"plan_id={plan_state.plan_id} stop={ctx.stop_price} "
+                    f"mark={_check_mark} — market moved past stop before order placed"
+                ),
+                affected_timeframes=[cfg.timeframe],
+                resolved=True,
+            ))
+        else:
+            plan = rebuild_stop_only_plan(plan_state, ctx)
+            submit_stop_live(agent, plan_state, plan)
+            matrix.append(DataQualityEvent(
+                venue=cfg.venue,
+                symbol=cfg.symbol,
+                detected_at=now,
+                reason_code="LIVE_STOP_SUBMITTED",
+                detail=f"plan_id={plan_state.plan_id} trigger={ctx.stop_price}",
+                affected_timeframes=[cfg.timeframe],
+                resolved=True,
+            ))
 
     position_size, _exch_side, mark_price = query_position_state(
         agent._client, plan_state.symbol,  # noqa: SLF001
