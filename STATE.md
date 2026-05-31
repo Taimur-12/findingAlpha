@@ -1,6 +1,39 @@
 # Finding Alpha — Project State
 
-Last updated: 2026-05-30 (Phase 10 green — paused for partner alignment; Streamlit dashboard added, repo hygiene pass)
+Last updated: 2026-06-01 (Live testnet trading active; 15m scalp strategy live with entry pending; close_position.py fixed)
+
+---
+
+## Session 2026-06-01: Live Testnet Trading Active
+
+**What was fixed:**
+- `notebooks/close_position.py` — Four API response unwrap bugs fixed (double-unwrap pattern corrected)
+  - `_get_best_ask()`: removed `.get("result", {})` (client._unwrap already unwraps)
+  - `_check_filled()`: same fix
+  - `close_market()`: replaced retCode check with `try/except BybitAPIError`
+  - `close_limit_chase()`: same fixes + orderId extraction corrected
+
+**Current live state (as of 2026-05-31T17:46 UTC):**
+- 15m strategy (`ema_scalp_15m_v1`) has submitted SELL order: 0.277 BTC @ limit $73,683.90
+- Entry status: `entry_filled_at: null` (not yet confirmed)
+- Stop: $73,773.92 | Target: $73,503.85 | Hard timeout: 2026-05-31T19:30:00 UTC
+- Note: Large gap between entry price ($73,683) and current mark ($84,439) suggests testnet candle/mark divergence
+
+**Outstanding issues:**
+1. Entry fill unclear — order may be rejected due to price gap; check Bybit testnet directly
+2. 1m strategy ghost halt — halts on every cycle when 15m has position (architectural, low priority)
+3. ADVISORY_INVALID events in matrix — historical, not a bug (matrix.jsonl is append-only)
+
+**Next steps:**
+- Press RUN LIVE CYCLE NOW every ~15 minutes (:00, :15, :30, :45) to monitor entry/exit conditions
+- Watch for entry fill or stop/target hit
+- After 19:30 UTC, next RUN press will force-close if not exited
+
+**Files changed:**
+- `notebooks/close_position.py` (4 fixes)
+- `paper/live/scalp_15m/state.json` (new entry)
+
+---
 
 ## Current Phase: PAUSE — partner strategy review before any capital deployment
 
