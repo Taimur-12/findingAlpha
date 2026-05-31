@@ -13,6 +13,7 @@ from streamlit_autorefresh import st_autorefresh
 from data.loader import (
     load_advisory,
     load_both_states,
+    load_scalp_states,
     load_market_context,
     system_health,
 )
@@ -42,10 +43,11 @@ st.markdown("""
 
 st.title("🟢 Live Status")
 
-s1, s2   = load_both_states()
-advisory = load_advisory()
-market   = load_market_context()
-health   = system_health(s1, s2, advisory)
+s1, s2        = load_both_states()
+s_15m, s_1m   = load_scalp_states()
+advisory      = load_advisory()
+market        = load_market_context()
+health        = system_health(s1, s2, advisory)
 now      = datetime.now(timezone.utc)
 
 # ── Data freshness banner ──────────────────────────────────────────────────────
@@ -92,6 +94,22 @@ def stale_str(hours):
 runner1_detail = f"prev_day_breakdown_v1 — last bar {stale_str(health['runner1_stale_h'])}"
 runner2_detail = f"short_composite_v1 — last bar {stale_str(health['runner2_stale_h'])}"
 
+def _stale_h(state: dict) -> float | None:
+    ts = state.get("last_bar_ts")
+    if not ts:
+        return None
+    try:
+        from datetime import datetime, timezone
+        last = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        return (datetime.now(timezone.utc) - last).total_seconds() / 3600
+    except Exception:
+        return None
+
+scalp15m_h = _stale_h(s_15m)
+scalp1m_h  = _stale_h(s_1m)
+runner_15m_status = "ok" if scalp15m_h is not None and scalp15m_h < 1 else ("stale" if scalp15m_h else "offline")
+runner_1m_status  = "ok" if scalp1m_h  is not None and scalp1m_h  < 0.1 else ("stale" if scalp1m_h else "offline")
+
 adv_hl = health["advisory_hours_left"]
 if adv_hl is not None:
     adv_detail = f"Expires in {adv_hl:.1f}h"
@@ -106,10 +124,12 @@ circuit_status = "stale" if health["circuit_breaker"] else "ok"
 # Build entire card as one compact string — blank lines inside an unsafe_allow_html block
 # cause the Markdown parser to exit HTML mode and render subsequent tags as plain text.
 _rows = (
-    health_row("Runner 1 (prev_day)", health["runner1_status"], runner1_detail)
-    + health_row("Runner 2 (composite)", health["runner2_status"], runner2_detail)
-    + health_row("LLM Advisory", health["advisory_status"], adv_detail)
-    + health_row("Circuit Breaker", circuit_status, circuit_str)
+    health_row("Runner 1 (prev_day 1h)",   health["runner1_status"], runner1_detail)
+    + health_row("Runner 2 (composite 1h)", health["runner2_status"], runner2_detail)
+    + health_row("Runner 3 (scalp 15m)",    runner_15m_status,        f"ema_scalp_15m_v1 — last bar {stale_str(scalp15m_h)}")
+    + health_row("Runner 4 (scalp 1m)",     runner_1m_status,         f"ema_scalp_1m_v1 — last bar {stale_str(scalp1m_h)}")
+    + health_row("LLM Advisory",            health["advisory_status"], adv_detail)
+    + health_row("Circuit Breaker",         circuit_status,            circuit_str)
 )
 st.markdown(
     f"<div class='status-card'>{_rows}</div>",
@@ -123,7 +143,7 @@ if health["circuit_breaker"]:
 # ── Position Cards ─────────────────────────────────────────────────────────────
 st.markdown("<div class='section-header'>Open Positions</div>", unsafe_allow_html=True)
 
-pc1, pc2 = st.columns(2)
+pc1, pc2, pc3, pc4 = st.columns(4)
 
 def render_position_card(col, state: dict, label: str, colour: str) -> None:
     pos = state.get("open_position") or state.get("pending_entry")
@@ -161,8 +181,10 @@ def render_position_card(col, state: dict, label: str, colour: str) -> None:
                 </table>
             </div>""", unsafe_allow_html=True)
 
-render_position_card(pc1, s1, "prev_day_breakdown_v1", BLUE)
-render_position_card(pc2, s2, "short_composite_v1", PURPLE)
+render_position_card(pc1, s1,    "prev_day_breakdown_v1", BLUE)
+render_position_card(pc2, s2,    "short_composite_v1",    PURPLE)
+render_position_card(pc3, s_15m, "ema_scalp_15m_v1",      AMBER)
+render_position_card(pc4, s_1m,  "ema_scalp_1m_v1",       "#FF6E96")
 
 # ── Market Context ─────────────────────────────────────────────────────────────
 st.markdown("<div class='section-header'>Market Context — BTCUSDT 1H</div>", unsafe_allow_html=True)

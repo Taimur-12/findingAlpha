@@ -20,6 +20,7 @@ from data.loader import (
     drawdown_series,
     load_advisory,
     load_both_states,
+    load_scalp_states,
     load_market_context,
     load_trades,
     system_health,
@@ -42,8 +43,9 @@ st_autorefresh(interval=60_000, key="overview_refresh")
 data_source_selector()
 
 # ── Load data ─────────────────────────────────────────────────────────────────
-s1, s2     = load_both_states()
-trades_df  = load_trades()
+s1, s2         = load_both_states()
+s_15m, s_1m    = load_scalp_states()
+trades_df      = load_trades()
 advisory   = load_advisory()
 market     = load_market_context()
 health     = system_health(s1, s2, advisory)
@@ -145,19 +147,21 @@ if stale_h and stale_h > 2:
     )
 
 # ── KPI Strip ──────────────────────────────────────────────────────────────────
-combined_eq  = combined_equity(s1, s2)
-combined_st  = combined_starting()
+_all_states  = [s1, s2, s_15m, s_1m]
+combined_eq  = combined_equity(*_all_states)
+combined_st  = combined_starting(n=len(_all_states))
 total_return = combined_eq - combined_st
 total_ret_pct = total_return / combined_st * 100
 
-# Daily P&L — combined
-daily_pnl = (s1["equity"] - s1["daily_start_equity"]) + (s2["equity"] - s2["daily_start_equity"])
+# Daily P&L — all strategies
+daily_pnl = sum(s["equity"] - s["daily_start_equity"] for s in _all_states)
 daily_pnl_pct = daily_pnl / combined_st * 100
 
-# Drawdown — worst of the two
-dd1 = (s1["equity"] - s1["peak_equity"]) / s1["peak_equity"] * 100 if s1["peak_equity"] else 0
-dd2 = (s2["equity"] - s2["peak_equity"]) / s2["peak_equity"] * 100 if s2["peak_equity"] else 0
-max_dd = min(dd1, dd2)
+# Drawdown — worst across all strategies
+max_dd = min(
+    (s["equity"] - s["peak_equity"]) / s["peak_equity"] * 100
+    for s in _all_states if s["peak_equity"]
+)
 
 # Status
 if health["circuit_breaker"]:
@@ -174,7 +178,7 @@ with k1:
     <div class='kpi-card'>
         <div class='kpi-label'>Account Equity</div>
         <div class='kpi-value' style='color:#E6EDF3'>${combined_eq:,.2f}</div>
-        <div class='kpi-sub'>Combined (2 strategies)</div>
+        <div class='kpi-sub'>Combined (4 strategies)</div>
     </div>""", unsafe_allow_html=True)
 
 with k2:
@@ -229,11 +233,15 @@ if not trades_df.empty:
     strat_colours = {
         "prev_day_breakdown_v1": BLUE,
         "short_composite_v1":    PURPLE,
+        "ema_scalp_15m_v1":      AMBER,
+        "ema_scalp_1m_v1":       "#FF6E96",
         "combined":              GREEN,
     }
     strat_names = {
         "prev_day_breakdown_v1": "prev_day_breakdown_v1",
         "short_composite_v1":    "short_composite_v1",
+        "ema_scalp_15m_v1":      "ema_scalp_15m_v1",
+        "ema_scalp_1m_v1":       "ema_scalp_1m_v1",
         "combined":              "Combined",
     }
 
@@ -244,7 +252,8 @@ if not trades_df.empty:
             continue
 
         # Starting point
-        start_eq = float(STARTING_CAPITAL) * (2 if sid == "combined" else 1)
+        n_strats = len(_all_states)
+        start_eq = float(STARTING_CAPITAL) * (n_strats if sid == "combined" else 1)
         x_vals = [sub["exit_ts"].iloc[0] - pd.Timedelta(hours=1)] + list(sub["exit_ts"])
         y_vals = [start_eq] + list(sub["equity"])
 
@@ -280,11 +289,13 @@ else:
 # ── Strategy Performance Cards ─────────────────────────────────────────────────
 st.markdown("<div class='section-header'>Strategy Performance</div>", unsafe_allow_html=True)
 
-c1, c2 = st.columns(2)
+c1, c2, c3, c4 = st.columns(4)
 
 for col, sid, state, label, colour in [
-    (c1, "prev_day_breakdown_v1", s1, "prev_day_breakdown_v1", BLUE),
-    (c2, "short_composite_v1",    s2, "short_composite_v1",    PURPLE),
+    (c1, "prev_day_breakdown_v1", s1,    "prev_day_breakdown_v1", BLUE),
+    (c2, "short_composite_v1",    s2,    "short_composite_v1",    PURPLE),
+    (c3, "ema_scalp_15m_v1",      s_15m, "ema_scalp_15m_v1",      AMBER),
+    (c4, "ema_scalp_1m_v1",       s_1m,  "ema_scalp_1m_v1",       "#FF6E96"),
 ]:
     strat_trades = trades_df[trades_df["strategy_id"] == sid] if not trades_df.empty else pd.DataFrame()
     m = trade_metrics(strat_trades)

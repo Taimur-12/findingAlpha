@@ -27,19 +27,32 @@ from finding_alpha.paper.live_execution import query_position_state
 from finding_alpha.paper.runtime import PaperRuntimeConfig, run_once
 
 LIVE_DIR = ROOT / "paper" / "live"
-PREV_DAY_DIR = LIVE_DIR
+PREV_DAY_DIR  = LIVE_DIR
 COMPOSITE_DIR = LIVE_DIR / "composite"
+SCALP_15M_DIR = LIVE_DIR / "scalp_15m"
+SCALP_1M_DIR  = LIVE_DIR / "scalp_1m"
 
 STRATEGIES = [
     ("prev_day_breakdown_v1", PREV_DAY_DIR),
-    ("short_composite_v1", COMPOSITE_DIR),
+    ("short_composite_v1",    COMPOSITE_DIR),
+    ("ema_scalp_15m_v1",      SCALP_15M_DIR),
+    ("ema_scalp_1m_v1",       SCALP_1M_DIR),
 ]
+
+_STRATEGY_CONFIGS = {
+    "prev_day_breakdown_v1": ("1h",  720),
+    "short_composite_v1":    ("1h",  720),
+    "ema_scalp_15m_v1":      ("15m", 120),
+    "ema_scalp_1m_v1":       ("1m",  10),
+}
 
 
 def _build_cfg(strategy_id: str, paper_dir: Path) -> PaperRuntimeConfig:
+    timeframe, max_hold_minutes = _STRATEGY_CONFIGS.get(strategy_id, ("1h", 720))
+
     return PaperRuntimeConfig(
         symbol="BTCUSDT",
-        timeframe="1h",
+        timeframe=timeframe,
         venue="bybit",
         lookback_bars=300,
         funding_days=14,
@@ -47,7 +60,7 @@ def _build_cfg(strategy_id: str, paper_dir: Path) -> PaperRuntimeConfig:
         strategy_id=strategy_id,
         initial_equity=10_000,
         risk_pct="0.0025",
-        max_hold_minutes=720,
+        max_hold_minutes=max_hold_minutes,
         maker_fee_bps="2.0",
         taker_fee_bps="5.5",
         stop_slippage_bps="10",

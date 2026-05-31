@@ -90,6 +90,16 @@ from finding_alpha.strategies.short_composite_v1 import (
     STRATEGY_ID as _COMPOSITE_ID,
     STRATEGY_VERSION as _COMPOSITE_VERSION,
 )
+from finding_alpha.strategies.ema_scalp_15m_v1 import (
+    find_signal as _scalp_15m_signal,
+    STRATEGY_ID as _SCALP_15M_ID,
+    STRATEGY_VERSION as _SCALP_15M_VERSION,
+)
+from finding_alpha.strategies.ema_scalp_1m_v1 import (
+    find_signal as _scalp_1m_signal,
+    STRATEGY_ID as _SCALP_1M_ID,
+    STRATEGY_VERSION as _SCALP_1M_VERSION,
+)
 
 # Registry: strategy_id → (find_fn(snapshot, regime, row, now), strategy_version)
 _STRATEGY_REGISTRY: dict[str, tuple] = {
@@ -100,6 +110,14 @@ _STRATEGY_REGISTRY: dict[str, tuple] = {
     _COMPOSITE_ID: (
         _composite_signal,
         _COMPOSITE_VERSION,
+    ),
+    _SCALP_15M_ID: (
+        _scalp_15m_signal,
+        _SCALP_15M_VERSION,
+    ),
+    _SCALP_1M_ID: (
+        _scalp_1m_signal,
+        _SCALP_1M_VERSION,
     ),
 }
 

@@ -46,8 +46,12 @@ ADVISORY_LOG     = ROOT / "paper/advisory_log.jsonl"
 
 def _prev_day_state() -> Path:    return _base_dir() / "state.json"
 def _composite_state() -> Path:   return _base_dir() / "composite" / "state.json"
+def _scalp_15m_state() -> Path:   return _base_dir() / "scalp_15m" / "state.json"
+def _scalp_1m_state() -> Path:    return _base_dir() / "scalp_1m" / "state.json"
 def _prev_day_trades() -> Path:   return _base_dir() / "trades.jsonl"
 def _composite_trades() -> Path:  return _base_dir() / "composite" / "trades.jsonl"
+def _scalp_15m_trades() -> Path:  return _base_dir() / "scalp_15m" / "trades.jsonl"
+def _scalp_1m_trades() -> Path:   return _base_dir() / "scalp_1m" / "trades.jsonl"
 def _prev_day_matrix() -> Path:   return _base_dir() / "matrix.jsonl"
 def _composite_matrix() -> Path:  return _base_dir() / "composite" / "matrix.jsonl"
 
@@ -103,20 +107,25 @@ def load_both_states() -> tuple[dict, dict]:
     return load_state(_prev_day_state()), load_state(_composite_state())
 
 
-def combined_equity(s1: dict, s2: dict) -> float:
-    """Sum of both strategy equities (they each start at STARTING_CAPITAL)."""
-    return s1["equity"] + s2["equity"]
+def load_scalp_states() -> tuple[dict, dict]:
+    """States for the two high-frequency scalp strategies (15m and 1m)."""
+    return load_state(_scalp_15m_state()), load_state(_scalp_1m_state())
 
 
-def combined_starting() -> float:
-    return float(STARTING_CAPITAL) * 2
+def combined_equity(*states: dict) -> float:
+    """Sum of all strategy equities."""
+    return sum(s["equity"] for s in states)
+
+
+def combined_starting(n: int = 2) -> float:
+    return float(STARTING_CAPITAL) * n
 
 
 # ── Trades ────────────────────────────────────────────────────────────────────
 
 def load_trades() -> pd.DataFrame:
     rows = []
-    for path in (_prev_day_trades(), _composite_trades()):
+    for path in (_prev_day_trades(), _composite_trades(), _scalp_15m_trades(), _scalp_1m_trades()):
         rows.extend(_read_jsonl(path))
     if not rows:
         return pd.DataFrame()
@@ -154,10 +163,11 @@ def build_equity_curve(df: pd.DataFrame, starting: float = 10000.0) -> pd.DataFr
         g["strategy"]       = sid
         curves.append(g[["exit_ts", "equity", "strategy"]])
 
-    # Combined (sum both strategies starting from 2×starting)
+    # Combined (sum all strategies — n_strategies × starting capital)
+    n_strategies = df["strategy_id"].nunique()
     combined = df.sort_values("exit_ts").copy()
     combined["cumulative_pnl"] = combined["net_pnl"].cumsum()
-    combined["equity"]         = float(STARTING_CAPITAL) * 2 + combined["cumulative_pnl"]
+    combined["equity"]         = float(STARTING_CAPITAL) * n_strategies + combined["cumulative_pnl"]
     combined["strategy"]       = "combined"
     curves.append(combined[["exit_ts", "equity", "strategy"]])
 

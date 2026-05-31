@@ -38,7 +38,12 @@
       "Bash(rm -rf \"E:MyProjectsfindingAlphadashboard.streamlit\" \"E:MyProjectsfindingAlphadashboarddata\" \"E:MyProjectsfindingAlphadashboardpages\" streamlit_debug.log)",
       "Bash(echo \"exit: $?\")",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:8501/)",
-      "Read(//private/tmp/**)"
+      "Read(//private/tmp/**)",
+      "PowerShell(cd \"E:\\\\MyProjects\\\\findingAlpha\"; $env:FINDING_ALPHA_FETCH_DAYS = \"1095\"; python notebooks/phase7b_fetch_extended_bybit.py 2>&1)",
+      "PowerShell(cd \"E:\\\\MyProjects\\\\findingAlpha\"; $env:PYTHONIOENCODING=\"utf-8\"; python notebooks/phase8_15m_sim_runner.py --weeks 52 2>&1)",
+      "PowerShell(cd \"E:\\\\MyProjects\\\\findingAlpha\"; $env:PYTHONIOENCODING=\"utf-8\"; python notebooks/phase8_15m_sim_runner.py --weeks 52)",
+      "PowerShell(cd \"E:\\\\MyProjects\\\\findingAlpha\"; $env:PYTHONIOENCODING=\"utf-8\"; python notebooks/phase8_15m_sim_runner.py --weeks 8 2>&1 | Out-String)",
+      "PowerShell(cd \"E:\\\\MyProjects\\\\findingAlpha\"; $env:PYTHONIOENCODING=\"utf-8\"; python notebooks/phase8_15m_sim_runner.py --weeks 52 2>&1 | Out-String)"
     ]
   }
 }

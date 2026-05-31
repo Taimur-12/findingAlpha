@@ -24,9 +24,9 @@ import pandas as pd
 GRACE_SECONDS: int = 60
 STALE_MULTIPLIER: int = 2
 
-_INTERVAL_MAP = {"15m": "15", "1h": "60"}
-_BAR_SECONDS = {"15m": 900, "1h": 3600}
-_OI_INTERVAL_MAP = {"15m": "15min", "1h": "1h"}
+_INTERVAL_MAP = {"1m": "1", "15m": "15", "1h": "60"}
+_BAR_SECONDS = {"1m": 60, "15m": 900, "1h": 3600}
+_OI_INTERVAL_MAP = {"1m": "5min", "15m": "15min", "1h": "1h"}  # Bybit min OI interval is 5m
 _BASE = "https://api.bybit.com"
 
 

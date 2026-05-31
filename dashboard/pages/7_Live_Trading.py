@@ -14,6 +14,8 @@ import streamlit as st
 from data.live_runner import (
     COMPOSITE_DIR,
     PREV_DAY_DIR,
+    SCALP_15M_DIR,
+    SCALP_1M_DIR,
     env_ready,
     exchange_position_snapshot,
     latest_matrix_events,
@@ -150,11 +152,15 @@ st.markdown("<div class='section-header'>Live State (paper/live/)</div>", unsafe
 
 s_prev = load_live_state(PREV_DAY_DIR)
 s_comp = load_live_state(COMPOSITE_DIR)
+s_15m  = load_live_state(SCALP_15M_DIR)
+s_1m   = load_live_state(SCALP_1M_DIR)
 
-cols = st.columns(2)
+cols = st.columns(4)
 for col, label, state, colour in [
-    (cols[0], "prev_day_breakdown_v1", s_prev, BLUE),
-    (cols[1], "short_composite_v1", s_comp, PURPLE),
+    (cols[0], "prev_day_breakdown_v1",   s_prev, BLUE),
+    (cols[1], "short_composite_v1",      s_comp, PURPLE),
+    (cols[2], "ema_scalp_15m_v1 (15m)",  s_15m,  GREEN),
+    (cols[3], "ema_scalp_1m_v1 (1m)",    s_1m,   AMBER),
 ]:
     with col:
         if not state.get("exists"):
@@ -242,10 +248,12 @@ else:
 
 # ── Recent matrix events per strategy ─────────────────────────────────────────
 st.markdown("<div class='section-header'>Recent Matrix Events</div>", unsafe_allow_html=True)
-ec1, ec2 = st.columns(2)
+ec1, ec2, ec3, ec4 = st.columns(4)
 for col, label, pdir in [
     (ec1, "prev_day_breakdown_v1", PREV_DAY_DIR),
-    (ec2, "short_composite_v1", COMPOSITE_DIR),
+    (ec2, "short_composite_v1",    COMPOSITE_DIR),
+    (ec3, "ema_scalp_15m_v1",      SCALP_15M_DIR),
+    (ec4, "ema_scalp_1m_v1",       SCALP_1M_DIR),
 ]:
     with col:
         st.caption(label)
@@ -268,7 +276,8 @@ for col, label, pdir in [
 
 st.divider()
 st.caption(
-    "Click RUN at the top of each hour (just after :00) to process the freshly-closed bar. "
-    "Each click: fetches latest candles, polls exchange, executes any open live plan, "
-    "and submits new entries if a strategy fires. State and trades persist to paper/live/."
+    "1h strategies (prev_day, composite): click RUN just after each hour (:00:30 UTC). "
+    "15m strategy (ema_scalp): click every 15 minutes for best responsiveness, "
+    "or hourly to catch up on missed bars. "
+    "Each click fetches candles, polls exchange, executes open plans, and submits new entries if a strategy fires."
 )
