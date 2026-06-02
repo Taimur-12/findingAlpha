@@ -79,10 +79,10 @@ Refreshes the historical-replay data the dashboard shows in Simulation mode.
 
 ```bash
 # 1. Fetch fresh candles from Bybit
-FINDING_ALPHA_FETCH_DAYS=1095 python notebooks/phase7b_fetch_extended_bybit.py
+FINDING_ALPHA_FETCH_DAYS=1095 python notebooks/runners/phase7b_fetch_extended_bybit.py
 
 # 2. Re-run sim against the new data
-python notebooks/phase8_simulation_runner.py --weeks 8
+python notebooks/runners/phase8_simulation_runner.py --weeks 8
 ```
 
 After both finish, refresh your browser. The "STALE" warnings disappear once the last bar is within 4 hours of now.
@@ -120,7 +120,7 @@ The advisory drives the policy / risk-scalar cards on tabs 0, 2, 5. It expires (
 To refresh:
 
 ```bash
-python notebooks/phase9_advisory_runner.py
+python notebooks/runners/phase9_advisory_runner.py
 ```
 
 Writes a new `advisory.json` at the project root and appends to `paper/advisory_log.jsonl`. Refresh the browser — the advisory cards update immediately. The "Advisory History" table on Tab 5 grows by one row.

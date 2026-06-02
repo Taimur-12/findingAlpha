@@ -5,9 +5,11 @@
 **Reconciles:** what we have *built* (Finding Alpha / QuantFusion) with the partners' written vision (`idea_docs/APEX_QUANT_v2_Blueprint.pdf`).
 **Decision inputs from this session:**
 - We commit to the APEX ambition: build a system that does justice to the blueprint and can compete in the lane where we can actually win.
+- **Multi-asset product, BTC-first.** The product targets multiple cryptocurrencies; **BTC is the first test market, not the scope.** Phases A–G below run on BTC first, but the architecture (collectors, knowledge graph, feature management) is sized for the multi-asset target.
+- **Functionality-first right-sizing.** The bar is *capability*, not size — simpler tools / smaller deployment are fine as long as the functionality exists. We defer or simplify only when the same capability is delivered more simply or isn't needed until a later scale (see the staged-infrastructure table in the architecture doc).
 - Budget is no longer the hard blocker. ~$50–100/month now, scaling **from revenue** as the system earns.
 - Build philosophy: **build until it genuinely works and shows real profit, then deploy and earn while we keep improving.** Not deploy-first.
-- Team: two technical people + Claude writing code. Pace is fast; this plan sequences by **dependency**, not calendar.
+- Team: a small technical team + Claude writing code. Pace is fast; this plan sequences by **dependency**, not calendar.
 - ML: **only techniques proven in real fund/finance settings in the last ~2 years.** Nothing unjustified. No "fancy" ML in the hot execution path.
 
 ---
@@ -96,9 +98,9 @@ For each layer: what's **built**, what we **add**, the **ML** (if any), and the 
 
 | Layer | APEX wants | Built today | We add | ML | Cost tier |
 |---|---|---|---|---|---|
-| **1 Data Foundation** | L2 book @100ms, tick+aggressor, on-chain, sentiment, macro; Redis/Kafka/Flink/Timescale | Bybit+Binance candles, funding, OI → Parquet | Order-book imbalance + CVD + **liquidation feed** (cheap aggregator API); DuckDB-on-Parquet; later on-chain netflow/whale features | none (feature eng) | T1 now, T2 later |
-| **2 Research Engine** | Auto-read arXiv/SSRN → LLM extract → Neo4j graph → quarantine | Claude **advisory**; manual research; informal quarantine | Formal **quarantine→graveyard** store (start as Parquet/SQLite, Neo4j only if it earns it); Claude paper-extraction into hypothesis schema | LLM extraction | T1 |
-| **3 Signal Discovery** | Transfer entropy, association mining, causal graphs, toxic flow, GNN | none | **Association-rule / feature-combination mining** (proven, cheap) to find multi-condition setups; toxic-flow *features* (Kyle's lambda, book thinning) as inputs — not a GNN | GBDT feature importance | T1 |
+| **1 Data Foundation** | L2 book @100ms, tick+aggressor, on-chain, sentiment, macro; Redis/Kafka/Flink/Timescale | Bybit+Binance candles, funding, OI → Parquet | Order-book imbalance + CVD + **liquidation feed** (cheap aggregator API); **ClickHouse (warm) + Parquet/R2 (cold) + thin feature-access layer**; later on-chain netflow/whale features | none (feature eng) | T1 now, T2 later |
+| **2 Research Engine** | Auto-read arXiv/SSRN → LLM extract → Neo4j graph → quarantine | Claude **advisory**; manual research; informal quarantine | Formal **quarantine→graveyard** store + **Neo4j Community** knowledge graph (justified by multi-asset relationship/conflict queries; free); pgvector for news/paper dedup; Claude paper-extraction into hypothesis schema | LLM extraction | T1 |
+| **3 Signal Discovery** | Transfer entropy, association mining, causal graphs, toxic flow, GNN | none | **GBDT (LightGBM) interaction discovery + SHAP** to surface multi-condition setups (a tree's splits *are* the combinations); optional RuleFit for readable rules; toxic-flow *features* (Kyle's lambda, book thinning) as inputs — not a GNN, not association mining | GBDT interactions / SHAP | T1 |
 | **4 Quant Agents** | 6–7 neural agents (Transformer+ESN) | rule-based strategies, no ML | **Multiple strategies, both directions** (see §6), each wrapped in **meta-labeling**; a mean-reversion strat on funding extremes | GBDT meta-labels; HMM regime | T1 |
 | **5 Validation** | Walk-forward + adversarial + diffusion + Monte Carlo | walk-forward + cost modeling | **CPCV**, **regime-bucketed stress test** (2021 bull / 2022 bear / 2019 range / Mar-2020 shock), **cost-sensitivity sweep** (0–20 bps), **block-bootstrap Monte Carlo** | CPCV | T1 |
 | **6 Decision Layer** | Bayesian aggregation + reflexivity + fractional Kelly + hard rules | deterministic risk gate + risk-% sizing | **Fixed-fractional sizing + hard rules + simple strategy weights now**; vol-targeting → capped Kelly → Bayesian weighting **staged by assumption** (see §3.4) | GBDT confidence | T1 |
@@ -125,7 +127,7 @@ Each phase has a **gate** that must pass before the next begins. Phases overlap 
 - **Gate:** any strategy can be run through one command and get a full institutional validation report (per-regime, per-cost, 5th-percentile).
 
 ### Phase C — Data depth (Layer 1, affordable tier) *(feeds everything downstream)*
-- Add order-book imbalance, CVD, and a liquidation feed (cheap aggregator API). Stand up 24/7 cloud VM. Migrate analytics to DuckDB-on-Parquet.
+- Add order-book imbalance, CVD, and a liquidation feed (cheap aggregator API). Stand up 24/7 cloud VM (DigitalOcean Student Pack / Oracle Always Free). Stand up **ClickHouse (warm) + Parquet/R2 (cold)** with the **thin feature-access layer**.
 - **Gate:** new features are live, gap-checked, and queryable; 24/7 collection running.
 
 ### Phase D — Both-directions strategy book + meta-labeling (Layers 3–4) *(fixes the #1 weakness)*

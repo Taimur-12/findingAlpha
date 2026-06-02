@@ -102,10 +102,10 @@ Monitoring
 
 ## Operational Files
 
-- **`notebooks/close_position.py`** — Emergency position closer (market → limit+chase fallback)
-- **`notebooks/phase7b_fetch_extended_bybit.py`** — Fetch candle data from Bybit
-- **`notebooks/phase8_simulation_runner.py`** — Run historical simulation
-- **`notebooks/phase9_advisory_runner.py`** — Refresh LLM advisory
+- **`notebooks/runners/close_position.py`** — Emergency position closer (market → limit+chase fallback)
+- **`notebooks/runners/phase7b_fetch_extended_bybit.py`** — Fetch candle data from Bybit
+- **`notebooks/runners/phase8_simulation_runner.py`** — Run historical simulation
+- **`notebooks/runners/phase9_advisory_runner.py`** — Refresh LLM advisory
 - **`.env`** (gitignored) — `BYBIT_TESTNET_API_KEY`, `BYBIT_TESTNET_API_SECRET`
 
 ## Common Workflows
@@ -115,8 +115,8 @@ Monitoring
 | Start dashboard | `.venv/bin/streamlit run dashboard/app.py` | Opens at localhost:8501 |
 | Run live cycle | Press "▶ RUN LIVE CYCLE NOW" in dashboard | Only way to trade live |
 | Refresh sim data | See `docs/current/dashboard_operations.md` § 4 | Takes ~30 sec |
-| Refresh advisory | `python notebooks/phase9_advisory_runner.py` | Every ~24h or before demo |
-| Close position manually | `python notebooks/close_position.py` | Market first, limit+chase fallback |
+| Refresh advisory | `python notebooks/runners/phase9_advisory_runner.py` | Every ~24h or before demo |
+| Close position manually | `python notebooks/runners/close_position.py` | Market first, limit+chase fallback |
 | Wipe live state | `rm -rf paper/live/` | Resets to $10k starting equity |
 
 ## Project Roadmap (Future)

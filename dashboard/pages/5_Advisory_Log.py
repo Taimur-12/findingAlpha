@@ -149,12 +149,12 @@ else:
     st.markdown("""
 **To run the advisory manually:**
 ```bash
-python notebooks/phase9_advisory_runner.py
+python notebooks/runners/phase9_advisory_runner.py
 ```
 
 **To schedule it in cron (Linux VM):**
 ```
-0 6 * * * cd /home/ubuntu/findingAlpha && python notebooks/phase9_advisory_runner.py
+0 6 * * * cd /home/ubuntu/findingAlpha && python notebooks/runners/phase9_advisory_runner.py
 ```
     """)
 
